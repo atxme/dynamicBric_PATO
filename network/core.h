@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NETWORK_SUCCESS 0  // Correction de la typo "SUCCES"
+#define NETWORK_SUCCESS 0  
 #define NETWORK_ERROR -1
 
 
@@ -89,11 +89,11 @@ typedef struct
 #define NETWORK_PROTOCOL_TCP 0
 #define NETWORK_PROTOCOL_UDP 1
 
-// socket creation structure 
 //////////////////////////////////
-/// t_iDomain : domain type (NETWORK_DOMAIN_IPV4 or NETWORK_DOMAIN_IPV6)
-/// t_iType : socket type (NETWORK_SOCK_TCP or NETWORK_SOCK_UDP)
-/// t_iProtocol : protocol type (0 for default)
+/// @brief socket creation structure 
+/// @param t_iDomain : domain type (NETWORK_DOMAIN_IPV4 or NETWORK_DOMAIN_IPV6)
+/// @param t_iType : socket type (NETWORK_SOCK_TCP or NETWORK_SOCK_UDP)
+/// @param t_iProtocol : protocol type (0 for default)
 //////////////////////////////////
 typedef struct
 {
@@ -152,10 +152,10 @@ int connectSocket(int p_iSocket, NetworkAddress* p_tAddress);
 /// @brief send data to remote address
 /// @param p_iSocket : socket handle
 /// @param p_ptBuffer : data buffer
-/// @param p_iSize : data size
+/// @param p_ulSize : data size
 /// @return : success or error code
 //////////////////////////////////
-int sendData(int p_iSocket, void* p_tpBuffer, int p_iSize);
+int sendData(int p_iSocket, void* p_tpBuffer, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief receive data from remote address

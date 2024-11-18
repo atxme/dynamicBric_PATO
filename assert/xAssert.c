@@ -47,7 +47,6 @@ bool loadLogFilePath(char* p_ptcLogFilePath)
 void assert(uint8_t* p_pFileName, uint32_t p_uiLine, void* p_ptLog)
 {
 
-
 	if (s_bIsLogToFile)
 	{
 		//open the log file 
