@@ -14,13 +14,14 @@ project ("dynamicBric_PATO")
 #inclure un directory
 include_directories("network")
 include_directories("assert")
+include_directories("xOs")
 
 #creation d'une ddl si windows et so sous linux
 if (WIN32)
   add_compile_definitions(DYNAMICBRIC_PATO_EXPORTS)
 endif()
 
-add_library(dynamicBric_PATO SHARED "dynamicBric_PATO.cpp" "dynamicBric_PATO.h" "network/core.h" "network/core.c" "assert/xAssert.h" "assert/xAssert.c")
+add_library(dynamicBric_PATO SHARED "dynamicBric_PATO.cpp" "dynamicBric_PATO.h" "network/core.h" "network/core.c" "assert/xAssert.h" "assert/xAssert.c" "xOs/xTask.h" "xOs/xTask.c")
 
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
