@@ -11,11 +11,20 @@ endif()
 
 project ("dynamicBric_PATO")
 
-# Ajoutez une source à l'exécutable de ce projet.
-add_executable (dynamicBric_PATO "dynamicBric_PATO.cpp" "dynamicBric_PATO.h")
+#inclure un directory
+include_directories("network")
+include_directories("assert")
+
+#creation d'une ddl si windows et so sous linux
+if (WIN32)
+  add_compile_definitions(DYNAMICBRIC_PATO_EXPORTS)
+endif()
+
+add_library(dynamicBric_PATO SHARED "dynamicBric_PATO.cpp" "dynamicBric_PATO.h" "network/core.h" "network/core.c" "assert/xAssert.h" "assert/xAssert.c")
+
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET dynamicBric_PATO PROPERTY CXX_STANDARD 20)
+  set_property(TARGET dynamicBric_PATO PROPERTY CXX_STANDARD 20 C_STANDARD 20)
 endif()
 
 # TODO: Ajoutez des tests et installez des cibles si nécessaire.
