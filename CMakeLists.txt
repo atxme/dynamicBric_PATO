@@ -10,6 +10,7 @@ project(dynamicBric_PATO
     VERSION 1.0
     LANGUAGES C CXX
     DESCRIPTION "Dynamic Bric PATO Library"
+
 )
 
 # Définir les sources
