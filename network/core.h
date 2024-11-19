@@ -11,8 +11,8 @@
 #define NETWORK_CORE_H_
 
 #ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include <windows.h>
+
 #pragma comment(lib, "ws2_32.lib")
 #else
 #include <sys/socket.h>
@@ -75,7 +75,12 @@ typedef struct
 
 // available domain types
 #define NETWORK_DOMAIN_IPV4 AF_INET
+#ifndef AF_INET6
+#define AF_INET6 10
+#endif
+#if defined(AF_INET6)
 #define NETWORK_DOMAIN_IPV6 AF_INET6
+#endif
 
 // available socket types
 #define NETWORK_SOCK_TCP SOCK_STREAM

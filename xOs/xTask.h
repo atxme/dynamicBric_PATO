@@ -19,8 +19,6 @@
 #include <signal.h> // to manage manually task management not permitted by posix standard
 #endif
 
-#include <Mspthrd.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

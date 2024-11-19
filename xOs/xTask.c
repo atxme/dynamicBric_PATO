@@ -192,6 +192,7 @@ int osTaskEnd(os_task_t* p_pttOSTask)
 	//end the task
 #ifdef _WIN32
 	l_ulReturn = TerminateThread(tOSTask.handle, tOSTask.exit_code);
+
 #else
 	l_ulReturn = pthread_cancel(tOSTask.handle);
 #endif
