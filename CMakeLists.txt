@@ -21,6 +21,9 @@ if (WIN32)
   add_compile_definitions(DYNAMICBRIC_PATO_EXPORTS)
 endif()
 
+# ajout des options de compilation
+add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-value -Wno-unused-local-typedefs -O2 -fdiagnostics-color=always)
+
 add_library(dynamicBric_PATO SHARED "dynamicBric_PATO.cpp" "dynamicBric_PATO.h" "network/core.h" "network/core.c" "assert/xAssert.h" "assert/xAssert.c" "xOs/xTask.h" "xOs/xTask.c")
 
 
