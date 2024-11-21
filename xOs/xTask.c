@@ -36,7 +36,7 @@ int osTaskCreate(os_task_t* p_pttOSTask)
 	pthread_attr_destroy(&l_tAttr);
 #endif
 	//check the task creation
-	if (tOSTask.handle == NULL)
+	if (tOSTask.handle == 0)
 	{
 		return OS_TASK_ERROR;
 	}
@@ -57,6 +57,7 @@ int osTaskCreate(os_task_t* p_pttOSTask)
 
 }
 
+#ifdef _WIN32
 //////////////////////////////////////////////////////////////
 /// osTaskStart
 //////////////////////////////////////////////////////////////
@@ -73,14 +74,10 @@ int osTaskStart(os_task_t* p_pttOSTask)
 
 	unsigned long l_ulReturn = OS_TASK_ERROR;
 
-	//start the task
-#ifdef _WIN32
 	l_ulReturn = ResumeThread(tOSTask.handle);
-#else
-	l_ulReturn = osTaskResume(tOSTask);
-#endif
 
-	if (l_ulReturn == OS_TASK_ERROR)
+
+	if ((int)l_ulReturn == OS_TASK_ERROR)
 	{
 		return OS_TASK_ERROR;
 	}
@@ -99,41 +96,49 @@ int osTaskStart(os_task_t* p_pttOSTask)
 //////////////////////////////////////////////////////////////
 int osTaskSuspend(os_task_t* p_pttOSTask)
 {
-	//check the task pointer
-	X_ASSERT(p_pttOSTask != NULL);
+    // Vérification du pointeur de tâche
+    X_ASSERT(p_pttOSTask != NULL);
 
-	//convert to loccal structure
-	os_task_t tOSTask = *p_pttOSTask;
+    // Copie locale de la structure pour travailler en sécurité
+    os_task_t tOSTask = *p_pttOSTask;
 
-	//check if the task is correctly started before interacting with it
-	X_ASSERT(tOSTask.status != OS_TASK_STATUS_TERMINATED && tOSTask.status != OS_TASK_STATUS_BLOCKED);
+    // Vérification que la tâche est valide et peut être suspendue
+    X_ASSERT(tOSTask.status != OS_TASK_STATUS_TERMINATED);
+    X_ASSERT(tOSTask.status != OS_TASK_STATUS_BLOCKED);
 
-	//check if the task is already suspended
-	if (tOSTask.status == OS_TASK_STATUS_SUSPENDED)
-	{
-		return OS_TASK_SUCCESS;
-	}
+    // Si la tâche est déjà suspendue, aucune action n'est nécessaire
+    if (tOSTask.status == OS_TASK_STATUS_SUSPENDED) {
+        return OS_TASK_SUCCESS;
+    }
 
-	unsigned long l_ulReturn = OS_TASK_ERROR;
+    int l_ulReturn = OS_TASK_ERROR;
 
-	//suspend the task
-#ifdef _WIN32
-	l_ulReturn = SuspendThread(tOSTask.handle);
-#else
-	l_ulReturn = kill(tOSTask.id, SIGSTOP);
-#endif
-	if (l_ulReturn == OS_TASK_ERROR)
-	{
-		return OS_TASK_ERROR;
-	}
 
-	//set the task status
-	tOSTask.status = OS_TASK_STATUS_SUSPENDED;
+    if (tOSTask.handle != NULL) {
+        l_ulReturn = SuspendThread(tOSTask.handle);
+    } else {
+        return OS_TASK_ERROR; // Handle invalide
+    }
 
-	//set the task pointer
-	*p_pttOSTask = tOSTask;
+    if (pthread_kill(tOSTask.id, 0) == 0) { // Vérifier que le thread existe
+        l_ulReturn = pthread_kill(tOSTask.id, SIGSTOP);
+    } else {
+        return OS_TASK_ERROR; // Thread invalide
+    }
 
-	return OS_TASK_SUCCESS;
+
+    // Vérifier si la suspension a réussi
+    if (l_ulReturn != 0) {
+        return OS_TASK_ERROR;
+    }
+
+    // Mise à jour de l'état de la tâche
+    tOSTask.status = OS_TASK_STATUS_SUSPENDED;
+
+    // Mise à jour du pointeur d'entrée
+    *p_pttOSTask = tOSTask;
+
+    return OS_TASK_SUCCESS;
 }
 
 //////////////////////////////////////////////////////////////
@@ -158,12 +163,7 @@ int osTaskResume(os_task_t* p_pttOSTask)
 
 	unsigned long l_ulReturn = OS_TASK_ERROR;
 
-	//resume the task
-#ifdef _WIN32
 	l_ulReturn = ResumeThread(tOSTask.handle);
-#else
-	l_ulReturn = kill(tOSTask.id, SIGCONT);
-#endif
 
 	tOSTask.status = OS_TASK_STATUS_RUNNING;
 
@@ -172,6 +172,7 @@ int osTaskResume(os_task_t* p_pttOSTask)
 
 	return OS_TASK_SUCCESS;
 }
+#endif 
 
 //////////////////////////////////////////////////////////////
 /// osTaskEnd
@@ -197,7 +198,7 @@ int osTaskEnd(os_task_t* p_pttOSTask)
 	l_ulReturn = pthread_cancel(tOSTask.handle);
 #endif
 
-	if (l_ulReturn == OS_TASK_ERROR)
+	if ((int)l_ulReturn == OS_TASK_ERROR)
 	{
 		return OS_TASK_ERROR;
 	}
@@ -211,7 +212,6 @@ int osTaskEnd(os_task_t* p_pttOSTask)
 	return OS_TASK_SUCCESS;
 }
 
-#ifdef _WIN32
 //////////////////////////////////////////////////////////////
 /// osTaskUpdateParameters
 //////////////////////////////////////////////////////////////
@@ -223,72 +223,30 @@ int osTaskUpdatePriority(os_task_t* p_pttOSTask, int* p_ptiPriority)
 	os_task_t tOSTask = *p_pttOSTask;
 
 	unsigned long l_ulReturn = OS_TASK_ERROR;
-	
+#ifdef _WIN32
 	//update the task priority
 	l_ulReturn = SetThreadPriority(tOSTask.handle, *p_ptiPriority);
-
-	if (l_ulReturn == OS_TASK_ERROR)
-	{
-		return OS_TASK_ERROR;
-	}
-
-	tOSTask.priority = *p_ptiPriority;
-
-	//set the task pointer
-	*p_pttOSTask = tOSTask;
-
-	return OS_TASK_SUCCESS;
-
-}
-
 #else
-//////////////////////////////////////////////////////////////
-/// osTaskUpdateParameters
-//////////////////////////////////////////////////////////////
-int osTaskUpdateParameters(os_task_t* p_pttOSTask, int* p_ptiPriority, int* p_ptiStackSize)
-{
-	X_ASSERT(p_pttOSTask != NULL);
-	X_ASSERT(p_ptiPriority != NULL);
-	X_ASSERT(p_ptiStackSize != NULL);
-	//convert to local structure
-	os_task_t tOSTask = *p_pttOSTask;
-
-	struct sched_param l_tParam = {0};
-	int l_iPolicy;
-	int l_iReturn = OS_TASK_ERROR;
-
-	//get the task policy
-	l_iReturn = pthread_getschedparam(tOSTask.handle, &l_iPolicy, &l_tParam);
-	if (l_iReturn != OS_TASK_SUCCESS)
-	{
-		return OS_TASK_ERROR;
-	}
-
-	//update the task priority
+	struct sched_param l_tParam;
 	l_tParam.sched_priority = *p_ptiPriority;
-	l_iReturn = pthread_setschedparam(tOSTask.handle, l_iPolicy, &l_tParam);
-	if (l_iReturn != OS_TASK_SUCCESS)
-	{
-		return OS_TASK_ERROR;
-	}
+	//update the task priority
+	l_ulReturn = pthread_setschedparam(tOSTask.handle, SCHED_RR, &l_tParam);
+#endif
 
-	//update the task stack size
-	l_iReturn = pthread_attr_setstacksize(&tOSTask.handle, *p_ptiStackSize);
-	if (l_iReturn != OS_TASK_SUCCESS)
+
+	if ((int)l_ulReturn == OS_TASK_ERROR)
 	{
 		return OS_TASK_ERROR;
 	}
 
 	tOSTask.priority = *p_ptiPriority;
-	tOSTask.stack_size = *p_ptiStackSize;
 
 	//set the task pointer
 	*p_pttOSTask = tOSTask;
 
 	return OS_TASK_SUCCESS;
-}
 
-#endif
+}
 
 //////////////////////////////////////////////////////////////
 /// osTaskGetExitCode
@@ -308,7 +266,7 @@ int osTaskGetExitCode(os_task_t* p_pttOSTask)
 	tOSTask.exit_code = l_dwExitCode;
 #else
 	//get the task exit code
-	pthread_join(tOSTask.handle, &tOSTask.exit_code);
+	pthread_join(tOSTask.handle, (void*)&tOSTask.exit_code);
 #endif
 
 	//set the task pointer

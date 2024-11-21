@@ -95,10 +95,20 @@ int connectSocket(int p_iSocket, NetworkAddress* p_tAddress)
 	X_ASSERT(l_ttAddress.t_usPort > 0);
 	X_ASSERT(l_ttAddress.t_usPort < 65535);
 
-	// connect socket
-	int l_iResult = connect(p_iSocket, NULL, NULL);
+	struct sockaddr_in l_ttSockaddr;
+	memset(&l_ttSockaddr, 0, sizeof(struct sockaddr_in));
+	l_ttSockaddr.sin_family = AF_INET;
+	l_ttSockaddr.sin_port = htons(l_ttAddress.t_usPort);
 
-	return l_iResult;
+	// convert ip address
+	int l_iResult = inet_pton(AF_INET, l_ttAddress.t_cAddress, &l_ttSockaddr.sin_addr);
+
+	X_ASSERT(l_iResult == 1);
+
+	// connect socket
+	l_iResult = connect(p_iSocket, (struct sockaddr*)&l_ttSockaddr, sizeof(struct sockaddr_in));
+
+	return l_iResult;	
 }
 
 ///////////////////////////////////////////////////////
@@ -163,12 +173,15 @@ int setSocketOption(int p_iSocket, int p_iOption, int p_iValue)
 ///////////////////////////////////////////////////////
 int getSocketOption(int p_iSocket, int p_iOption, int* p_iValue)
 {
-	X_ASSERT(p_iSocket > 0);
-	X_ASSERT(p_iOption > 0);
-	X_ASSERT(p_iValue != NULL);
+    X_ASSERT(p_iSocket > 0);
+    X_ASSERT(p_iOption > 0);
+    X_ASSERT(p_iValue != NULL);
 
-	// get socket option
-	int l_iResult = getsockopt(p_iSocket, SOL_SOCKET, p_iOption, p_iValue, sizeof(int));
+    // Déclarer la taille comme socklen_t
+    socklen_t optlen = sizeof(int);
 
-	return l_iResult;
+    // Appeler getsockopt avec un pointeur vers optlen
+    int l_iResult = getsockopt(p_iSocket, SOL_SOCKET, p_iOption, p_iValue, &optlen);
+
+    return l_iResult;
 }

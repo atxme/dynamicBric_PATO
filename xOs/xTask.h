@@ -27,14 +27,14 @@
 #define OS_TASK_SUCCESS 0
 #define OS_TASK_ERROR -1
 
-#define OS_TASK_STATUS_READY 0
-#define OS_TASK_STATUS_RUNNING 1
-#define OS_TASK_STATUS_BLOCKED 2
-#define OS_TASK_STATUS_SUSPENDED 3
-#define OS_TASK_STATUS_TERMINATED 4
+#define OS_TASK_STATUS_READY 0UL
+#define OS_TASK_STATUS_RUNNING 1UL
+#define OS_TASK_STATUS_BLOCKED 2UL
+#define OS_TASK_STATUS_SUSPENDED 3UL
+#define OS_TASK_STATUS_TERMINATED 4UL
 
-#define OS_TASK_EXIT_SUCCESS 0
-#define OS_TASK_EXIT_FAILURE -1
+#define OS_TASK_EXIT_SUCCESS 0UL
+#define OS_TASK_EXIT_FAILURE -1UL
 
 
 #define OS_TASK_LOWEST_PRIORITY 0x0
@@ -57,13 +57,13 @@
 /// @note the structure is used for all the management of the task 
 //////////////////////////////////
 typedef struct {
-    void* (*task)(void*);   // Pointeur vers la fonction de la tâche
-    void* arg;              // Arguments de la tâche
-    int priority;           // Priorité de la tâche (OS-specific)
+    void* (*task)(void*);   // Pointeur vers la fonction de la tï¿½che
+    void* arg;              // Arguments de la tï¿½che
+    int priority;           // Prioritï¿½ de la tï¿½che (OS-specific)
     int stack_size;         // Taille de la pile (OS-specific)
-    int id;                 // ID de la tâche
-    int status;             // Statut de la tâche
-    int exit_code;          // Code de sortie de la tâche
+    int id;                 // ID de la tï¿½che
+    int status;             // Statut de la tï¿½che
+    int exit_code;          // Code de sortie de la tï¿½che
 #ifdef _WIN32
     HANDLE handle;          // Handle du thread Windows
 #else
@@ -78,6 +78,7 @@ typedef struct {
 //////////////////////////////////
 int osTaskCreate(os_task_t* p_pttOSTask);
 
+#ifdef _WIN32
 //////////////////////////////////
 /// @brief task start
 /// @note if not windows os, the task is already running so the function will resume the task if it's suspended
@@ -93,13 +94,13 @@ int osTaskStart(os_task_t* p_pttOSTask);
 //////////////////////////////////
 int osTaskSuspend(os_task_t* p_pttOSTask);
 
-
 //////////////////////////////////
 /// @brief task resume a specific task
 /// @param task pointer to the task struct
 /// @return OS_TASK_SUCCESS if the task is resumed successfully or error code
 ////////////////////////////////// 
 int osTaskResume(os_task_t* p_pttOSTask);
+#endif
 
 //////////////////////////////////
 /// @brief end a specific task
@@ -114,14 +115,10 @@ int osTaskEnd(os_task_t* p_pttOSTask);
 /// @note if you don't want to update a param just put NULL
 /// @param task pointer to the task struct
 /// @param p_ptiPriority pointer to the priority
-/// @param p_ptiStackSize pointer to the stack size ONLY FOR LINUX
 /// @return OS_TASK_SUCCESS if the task is updated successfully or error code
 //////////////////////////////////
-#ifdef _WIN32
 int osTaskUpdatePriority(os_task_t* p_pttOSTask, int* p_ptiPriority);
-#else
-int osTaskUpdateParameters(os_task_t* p_pttOSTask, int* p_ptiPriority, int* p_ptiStackSize);
-#endif
+
 
 //////////////////////////////////
 /// @brief get the task exit code

@@ -22,6 +22,8 @@
 #include <windows.h>
 #else
 #include <pthread.h>
+#include <linux/time.h>
+#include <time.h>
 #endif // _WIN32
 
 #define OS_CRITICAL_SUCCESS 0
