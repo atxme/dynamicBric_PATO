@@ -120,12 +120,6 @@ int osTaskSuspend(os_task_t* p_pttOSTask)
         return OS_TASK_ERROR; // Handle invalide
     }
 
-    if (pthread_kill(tOSTask.id, 0) == 0) { // Vérifier que le thread existe
-        l_ulReturn = pthread_kill(tOSTask.id, SIGSTOP);
-    } else {
-        return OS_TASK_ERROR; // Thread invalide
-    }
-
 
     // Vérifier si la suspension a réussi
     if (l_ulReturn != 0) {

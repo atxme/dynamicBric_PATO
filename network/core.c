@@ -168,6 +168,7 @@ int setSocketOption(int p_iSocket, int p_iOption, int p_iValue)
 	return l_iResult;
 }
 
+#ifndef _WIN32
 ///////////////////////////////////////////////////////
 /// get socket option
 ///////////////////////////////////////////////////////
@@ -177,6 +178,10 @@ int getSocketOption(int p_iSocket, int p_iOption, int* p_iValue)
     X_ASSERT(p_iOption > 0);
     X_ASSERT(p_iValue != NULL);
 
+	// Déclarer la taille comme int
+	int optlen = sizeof(int);
+
+
     // Déclarer la taille comme socklen_t
     socklen_t optlen = sizeof(int);
 
@@ -185,3 +190,5 @@ int getSocketOption(int p_iSocket, int p_iOption, int* p_iValue)
 
     return l_iResult;
 }
+
+#endif // _WIN32
