@@ -28,6 +28,7 @@ int osTaskCreate(os_task_t* p_pttOSTask)
 	//create the task
 #ifdef _WIN32
 	tOSTask.handle = CreateThread(NULL, tOSTask.stack_size, tOSTask.task, tOSTask.arg, 0, NULL);
+	tOSTask.id = GetThreadId(tOSTask.handle);
 #else
 	pthread_attr_t l_tAttr;
 	pthread_attr_init(&l_tAttr);
@@ -155,7 +156,7 @@ int osTaskResume(os_task_t* p_pttOSTask)
 		return OS_TASK_SUCCESS;
 	}
 
-	unsigned long l_ulReturn = OS_TASK_ERROR;
+	unsigned long l_ulReturn = (unsigned long)OS_TASK_ERROR;
 
 	l_ulReturn = ResumeThread(tOSTask.handle);
 
