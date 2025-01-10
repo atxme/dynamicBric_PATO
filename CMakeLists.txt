@@ -32,6 +32,7 @@ set(SOURCES
     ${PROJECT_ROOT}/assert/xAssert.c
     ${PROJECT_ROOT}/xOs/xTask.c
     ${PROJECT_ROOT}/xOs/xOsCritical.c
+    ${PROJECT_ROOT}/xOs/xOsMutex.c
 )
 
 set(HEADERS
@@ -40,6 +41,7 @@ set(HEADERS
     ${PROJECT_ROOT}/assert/xAssert.h
     ${PROJECT_ROOT}/xOs/xTask.h
     ${PROJECT_ROOT}/xOs/xOsCritical.h
+    ${PROJECT_ROOT}/xOs/xOsMutex.h
 )
 
 # Créer la bibliothèque avec les sources
