@@ -22,8 +22,8 @@
 #include <windows.h>
 #else
 #include <pthread.h>
-#include <linux/time.h>
-#include <time.h>
+#include <sys/time.h>
+#define _POSIX_C_SOURCE 200809L
 #endif // _WIN32
 
 #define OS_CRITICAL_SUCCESS 0
@@ -33,6 +33,8 @@
 #define OS_CRITICAL_UNLOCKED 1
 
 #define OS_CRITICAL_DEFAULT_TIMEOUT 0
+#define OS_CRITICAL_TIMEOUT -2
+
 
 //////////////////////////////////
 /// @brief critical struct creation

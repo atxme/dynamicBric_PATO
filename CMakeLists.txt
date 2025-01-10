@@ -1,5 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.12)
 
+set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
+
 # Définir la politique pour le format des informations de débogage MSVC
 if(POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
@@ -13,35 +15,47 @@ project(dynamicBric_PATO
 
 )
 
-# Définir les sources
+# Debug des chemins
+message(STATUS "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
+file(GLOB_RECURSE ALL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*")
+foreach(FILE ${ALL_FILES})
+    message(STATUS "Found file: ${FILE}")
+endforeach()
+
+# Forcer le chemin absolu
+get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+
+# Redéfinir les sources avec le chemin absolu
 set(SOURCES
-    dynamicBric_PATO.cpp
-    network/core.c
-    assert/xAssert.c
-    xOs/xTask.c
-    xOs/xOsCritical.c
+    ${PROJECT_ROOT}/dynamicBric_PATO.cpp
+    ${PROJECT_ROOT}/network/core.c
+    ${PROJECT_ROOT}/assert/xAssert.c
+    ${PROJECT_ROOT}/xOs/xTask.c
+    ${PROJECT_ROOT}/xOs/xOsCritical.c
 )
 
 set(HEADERS
-    dynamicBric_PATO.h
-    network/core.h
-    assert/xAssert.h
-    xOs/xTask.h
-    xOs/xOsCritical.h
+    ${PROJECT_ROOT}/dynamicBric_PATO.h
+    ${PROJECT_ROOT}/network/core.h
+    ${PROJECT_ROOT}/assert/xAssert.h
+    ${PROJECT_ROOT}/xOs/xTask.h
+    ${PROJECT_ROOT}/xOs/xOsCritical.h
 )
 
-# Créer la bibliothèque partagée
+# Créer la bibliothèque avec les sources
 add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 
-# Configurer les dossiers d'inclusion de manière moderne
+# Ajuster les chemins d'inclusion
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/network
         ${CMAKE_CURRENT_SOURCE_DIR}/assert
         ${CMAKE_CURRENT_SOURCE_DIR}/xOs
 )
+
+
 
 # Définir les options du compilateur de manière moderne
 if(MSVC)
@@ -83,6 +97,16 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+
+if(UNIX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        _POSIX_C_SOURCE=200809L
+        _GNU_SOURCE
+        _XOPEN_SOURCE=700
+    )
+    target_link_libraries(${PROJECT_NAME} PRIVATE pthread rt)
+endif()
+
 
 # Installation
 include(GNUInstallDirs)

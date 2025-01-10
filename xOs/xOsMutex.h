@@ -1,0 +1,14 @@
+////////////////////////////////////////////////////////////
+//  os critical header file
+//  defines the os function for critical section manipulation
+//
+// general discloser: copy or share the file is forbidden
+// Written : 14/11/2024
+////////////////////////////////////////////////////////////
+
+#include <mutex.h>
+
+
+
+
+

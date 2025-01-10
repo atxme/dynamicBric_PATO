@@ -1,41 +1,29 @@
-////////////////////////////////////////////////////////////
-//  os critical src file
-//  defines the os function for critical section manipulation
-//
-// general discloser: copy or share the file is forbidden
-// Written : 14/11/2024
-////////////////////////////////////////////////////////////
-
 #include "xOsCritical.h"
+#include <errno.h>
+#include <time.h>
 
 ////////////////////////////////////////////////////////////
 /// osCriticalCreate
 ////////////////////////////////////////////////////////////
 int osCriticalCreate(os_critical_t* p_pttOSCritical)
 {
-	//check the critical pointer
-	X_ASSERT(p_pttOSCritical != NULL);
+    X_ASSERT(p_pttOSCritical != NULL);
 
-	//convert to loccal structure
-	os_critical_t tOSCritical = *p_pttOSCritical;
+    pthread_mutexattr_t l_tAttr;
+    pthread_mutexattr_init(&l_tAttr);
+    pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE_NP);
+        
 
-	//create the critical section
-#ifdef _WIN32
-	InitializeCriticalSection(&tOSCritical.critical);
-#else
-	pthread_mutex_init(&tOSCritical.critical, NULL);
-#endif
-	//set the critical lock status
-	tOSCritical.iLock = OS_CRITICAL_UNLOCKED;
+    if (pthread_mutex_init(&p_pttOSCritical->critical, &l_tAttr) != 0) {
+        pthread_mutexattr_destroy(&l_tAttr);
+        return OS_CRITICAL_ERROR;
+    }
 
-	//set the critical timeout
-	tOSCritical.ulTimeout = OS_CRITICAL_DEFAULT_TIMEOUT;
+    pthread_mutexattr_destroy(&l_tAttr);
+    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
+    p_pttOSCritical->ulTimeout = OS_CRITICAL_DEFAULT_TIMEOUT;
 
-	//set the critical pointer
-	*p_pttOSCritical = tOSCritical;
-
-	return OS_CRITICAL_SUCCESS;
-
+    return OS_CRITICAL_SUCCESS;
 }
 
 ////////////////////////////////////////////////////////////
@@ -43,38 +31,30 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 int osCriticalLock(os_critical_t* p_pttOSCritical)
 {
-	//check the critical pointer
-	X_ASSERT(p_pttOSCritical != NULL);
-	X_ASSERT(p_pttOSCritical->iLock == OS_CRITICAL_UNLOCKED);
+    X_ASSERT(p_pttOSCritical != NULL);
 
-	//convert to loccal structure
-	os_critical_t tOSCritical = *p_pttOSCritical;
+    if (p_pttOSCritical->ulTimeout == 0) {
+        if (pthread_mutex_lock(&p_pttOSCritical->critical) != 0) {
+            return OS_CRITICAL_ERROR;
+        }
+    }
+    else {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += p_pttOSCritical->ulTimeout / 1000;
+        ts.tv_nsec += (p_pttOSCritical->ulTimeout % 1000) * 1000000;
 
-	//lock the critical section
-#ifdef _WIN32
-	EnterCriticalSection(&tOSCritical.critical);
-#else
-	if (tOSCritical.ulTimeout == 0)
-	{
-		pthread_mutex_lock(&tOSCritical.critical);
-	}
-	else
-	{
-		unsigned long l_ulReturn = osCriticalLockWithTimeout(p_pttOSCritical);
+        int result = pthread_mutex_timedlock(&p_pttOSCritical->critical, &ts);
+        if (result == ETIMEDOUT) {
+            return -2;
+        }
+        else if (result != 0) {
+            return OS_CRITICAL_ERROR;
+        }
+    }
 
-		if ((int)l_ulReturn == OS_CRITICAL_ERROR)
-		{
-			return OS_CRITICAL_ERROR;
-		}
-	}
-#endif
-	//set the critical lock status
-	tOSCritical.iLock = OS_CRITICAL_LOCKED;
-
-	//set the critical pointer
-	*p_pttOSCritical = tOSCritical;
-
-	return OS_CRITICAL_SUCCESS;
+    p_pttOSCritical->iLock = OS_CRITICAL_LOCKED;
+    return OS_CRITICAL_SUCCESS;
 }
 
 ////////////////////////////////////////////////////////////
@@ -82,26 +62,15 @@ int osCriticalLock(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 int osCriticalUnlock(os_critical_t* p_pttOSCritical)
 {
-	//check the critical pointer
-	X_ASSERT(p_pttOSCritical != NULL);
-	X_ASSERT(p_pttOSCritical->iLock == OS_CRITICAL_LOCKED);
+    X_ASSERT(p_pttOSCritical != NULL);
+    X_ASSERT(p_pttOSCritical->iLock == OS_CRITICAL_LOCKED);
 
-	//convert to loccal structure
-	os_critical_t tOSCritical = *p_pttOSCritical;
+    if (pthread_mutex_unlock(&p_pttOSCritical->critical) != 0) {
+        return OS_CRITICAL_ERROR;
+    }
 
-	//unlock the critical section
-#ifdef _WIN32
-	LeaveCriticalSection(&tOSCritical.critical);
-#else
-	pthread_mutex_unlock(&tOSCritical.critical);
-#endif
-	//set the critical lock status
-	tOSCritical.iLock = OS_CRITICAL_UNLOCKED;
-
-	//set the critical pointer
-	*p_pttOSCritical = tOSCritical;
-
-	return OS_CRITICAL_SUCCESS;
+    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
+    return OS_CRITICAL_SUCCESS;
 }
 
 ////////////////////////////////////////////////////////////
@@ -109,23 +78,12 @@ int osCriticalUnlock(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 int osCriticalDestroy(os_critical_t* p_pttOSCritical)
 {
-	//check the critical pointer
-	X_ASSERT(p_pttOSCritical != NULL);
+    X_ASSERT(p_pttOSCritical != NULL);
 
-	//convert to loccal structure
-	os_critical_t tOSCritical = *p_pttOSCritical;
+    if (pthread_mutex_destroy(&p_pttOSCritical->critical) != 0) {
+        return OS_CRITICAL_ERROR;
+    }
 
-	//destroy the critical section
-#ifdef _WIN32
-	DeleteCriticalSection(&tOSCritical.critical);
-#else
-	pthread_mutex_destroy(&tOSCritical.critical);
-#endif
-	//set the critical lock status
-	tOSCritical.iLock = OS_CRITICAL_UNLOCKED;
-
-	//set the critical pointer
-	*p_pttOSCritical = tOSCritical;
-
-	return OS_CRITICAL_SUCCESS;
+    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
+    return OS_CRITICAL_SUCCESS;
 }

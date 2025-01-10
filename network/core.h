@@ -12,7 +12,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-
 #pragma comment(lib, "ws2_32.lib")
 #else
 #include <sys/socket.h>
@@ -21,22 +20,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/types.h>
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define NETWORK_SUCCESS 0  
-#define NETWORK_ERROR -1
-
-
-#define HOST_TO_NET_LONG(p_uiValue) htonl(p_uiValue)
-#define HOST_TO_NET_SHORT(p_usValue) htons(p_usValue)
-
-#define NET_TO_HOST_LONG(p_uiValue) ntohl(p_uiValue)
-#define NET_TO_HOST_SHORT(p_usValue) ntohs(p_usValue)
-
 
 // network error codes
 #define NETWORK_OK 0
@@ -49,16 +38,20 @@
 #define NETWORK_INVALID_BUFFER -7
 #define NETWORK_INVALID_SIZE -8
 
+#define HOST_TO_NET_LONG(p_uiValue) htonl(p_uiValue)
+#define HOST_TO_NET_SHORT(p_usValue) htons(p_usValue)
+
+#define NET_TO_HOST_LONG(p_uiValue) ntohl(p_uiValue)
+#define NET_TO_HOST_SHORT(p_usValue) ntohs(p_usValue)
 
 // network address
 //////////////////////////////////
 /// t_cAddress : address string
 /// t_usPort : port number
 //////////////////////////////////
-typedef struct
-{
-	char t_cAddress[16];  // 16 bytes to store both IPv4 and IPv6 addresses
-	unsigned short t_usPort;
+typedef struct {
+    char t_cAddress[INET6_ADDRSTRLEN];  // Support both IPv4 and IPv6 addresses
+    unsigned short t_usPort;
 } NetworkAddress;
 
 // network socket
@@ -66,21 +59,14 @@ typedef struct
 /// t_iSocket : socket handle
 /// t_iType : socket type
 //////////////////////////////////
-typedef struct
-{
-	int t_iSocket;
-	int t_iType;
+typedef struct {
+    int t_iSocket;
+    int t_iType;
 } NetworkSocket;
-
 
 // available domain types
 #define NETWORK_DOMAIN_IPV4 AF_INET
-#ifndef AF_INET6
-#define AF_INET6 10
-#endif
-#if defined(AF_INET6)
 #define NETWORK_DOMAIN_IPV6 AF_INET6
-#endif
 
 // available socket types
 #define NETWORK_SOCK_TCP SOCK_STREAM
@@ -100,11 +86,10 @@ typedef struct
 /// @param t_iType : socket type (NETWORK_SOCK_TCP or NETWORK_SOCK_UDP)
 /// @param t_iProtocol : protocol type (0 for default)
 //////////////////////////////////
-typedef struct
-{
-	int t_iDomain;
-	int t_iType;
-	int t_iProtocol;
+typedef struct {
+    int t_iDomain;
+    int t_iType;
+    int t_iProtocol;
 } NetworkSocketCreation;
 
 // core functions 
@@ -116,8 +101,6 @@ typedef struct
 //////////////////////////////////
 int createSocket(NetworkSocketCreation* p_tSocketParameters);
 
-
-
 //////////////////////////////////
 /// @brief bind socket to address
 /// @param p_iSocket : socket handle
@@ -126,8 +109,6 @@ int createSocket(NetworkSocketCreation* p_tSocketParameters);
 /// @return : error code
 //////////////////////////////////
 int bindSocket(int p_iSocket, NetworkAddress* p_pttAddress, struct sockaddr* p_pttSockaddr);
-
-
 
 //////////////////////////////////
 /// @brief listen to incoming connections
@@ -143,7 +124,7 @@ int listenSocket(int p_iSocket, int p_iBacklog);
 /// @param p_tAddress : address structure
 /// @return : socket handle or error code
 //////////////////////////////////
-int acceptConnection(int p_iSocket, NetworkAddress* p_tAddress);
+int acceptConnection(int p_iSocket, NetworkAddress* p_ptAddress);
 
 //////////////////////////////////
 /// @brief connect to remote address
@@ -151,7 +132,7 @@ int acceptConnection(int p_iSocket, NetworkAddress* p_tAddress);
 /// @param p_tAddress : address structure
 /// @return : success or error code
 //////////////////////////////////
-int connectSocket(int p_iSocket, NetworkAddress* p_tAddress);
+int connectSocket(int p_iSocket, NetworkAddress* p_ptAddress);
 
 //////////////////////////////////
 /// @brief send data to remote address
@@ -160,7 +141,7 @@ int connectSocket(int p_iSocket, NetworkAddress* p_tAddress);
 /// @param p_ulSize : data size
 /// @return : success or error code
 //////////////////////////////////
-int sendData(int p_iSocket, void* p_tpBuffer, unsigned long p_ulSize);
+int sendData(int p_iSocket, const void* p_ptpBuffer, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief receive data from remote address
@@ -178,7 +159,6 @@ int receiveData(int p_iSocket, void* p_ptBuffer, int p_iSize);
 //////////////////////////////////
 int closeSocket(int p_iSocket);
 
-
 //////////////////////////////////
 /// @brief set socket option
 /// @param p_iSocket : socket handle
@@ -195,8 +175,6 @@ int setSocketOption(int p_iSocket, int p_iOption, int p_iValue);
 /// @param p_iValue : option value
 /// @return : error code
 ////////////////////////////////// 
-int getSocketOption(int p_iSocket, int p_iOption, int* p_iValue);
+int getSocketOption(int p_iSocket, int p_iOption, int* p_ptiValue);
 
-
-
-#endif // NETWORK_CORE_H_
+#endif // N
