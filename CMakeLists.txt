@@ -69,6 +69,8 @@ set(RASPBERRY_SOURCES
     ${PROJECT_ROOT}/xProtocol/xGpio.c
     ${PROJECT_ROOT}/xProtocol/xI2c.c
     ${PROJECT_ROOT}/xProtocol/xPwm.c
+    ${PROJECT_ROOT}/hash/xHash.c
+    ${PROJECT_ROOT}/memory/xMemory.c
 )
 
 # Base headers
@@ -79,6 +81,8 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/xOs/xTask.h
     ${PROJECT_ROOT}/xOs/xOsCritical.h
     ${PROJECT_ROOT}/xOs/xOsMutex.h
+    ${PROJECT_ROOT}/hash/xHash.h
+    ${PROJECT_ROOT}/memory/xMemory.h
 )
 
 # Raspberry Pi specific headers
@@ -191,6 +195,8 @@ if(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE 
         pthread 
         rt
+        ssl
+        crypto
         ${GPIOD_LIBRARIES}
     )
 endif()
