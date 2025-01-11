@@ -98,3 +98,49 @@ void assert(uint8_t* p_pFileName, uint32_t p_uiLine, void* p_ptLog)
 
 }
 
+//////////////////////////////////
+/// @brief assert function
+/// @note this is the assert function with a return value. This function will not end the execution !!!!!
+/// @param p_pFileName : file name
+/// @param p_uiLine : line number
+/// @param p_ptLog : log pointer
+///////////////////////////////////
+int assertValueWithReturn(uint8_t* p_pFileName, uint32_t p_uiLine, void* p_ptLog, int ret)
+{
+	if (s_bIsLogToFile)
+	{
+		//open the log file 
+		FILE* l_ptFile = fopen(s_ptcLogFilePath, "a");
+
+		if (l_ptFile == NULL)
+		{
+			printf("ASSERT Error: impossible to open the log file\n");
+			printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
+			printf("ASSERT log message: %s\n", (char*)p_ptLog);
+		}
+
+		else
+		{
+			//write the log message to the file
+			fprintf(l_ptFile, "ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
+
+			if (p_ptLog != NULL)
+			{
+				fprintf(l_ptFile, "ASSERT log message: %s\n", (char*)p_ptLog);
+			}
+
+		}
+	}
+
+	else
+	{
+		printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
+
+		if (p_ptLog != NULL)
+		{
+			printf("ASSERT log message: %s\n", (char*)p_ptLog);
+		}
+
+	}
+	return ret;
+}

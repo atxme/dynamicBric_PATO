@@ -1,8 +1,19 @@
 ﻿cmake_minimum_required(VERSION 3.12)
 
+# Set available build types
+set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo MinSizeRel)
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel")
+
 set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
 
-# Définir la politique pour le format des informations de débogage MSVC
+# Option to enable/disable Raspberry Pi mode and version
+option(ENABLE_RASPBERRY "Enable Raspberry Pi specific code" ON)
+option(RPI_VERSION "Raspberry Pi Version (4 or 5)" 4)
+
+# Required for libgpiod
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GPIOD REQUIRED libgpiod)
+
 if(POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
@@ -12,21 +23,37 @@ project(dynamicBric_PATO
     VERSION 1.0
     LANGUAGES C CXX
     DESCRIPTION "Dynamic Bric PATO Library"
-
 )
 
-# Debug des chemins
+# Debug paths and configuration
 message(STATUS "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
-file(GLOB_RECURSE ALL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*")
-foreach(FILE ${ALL_FILES})
-    message(STATUS "Found file: ${FILE}")
-endforeach()
+message(STATUS "Raspberry Pi mode: ${ENABLE_RASPBERRY}")
+message(STATUS "Raspberry Pi version: ${RPI_VERSION}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "GPIOD Include Dirs: ${GPIOD_INCLUDE_DIRS}")
+message(STATUS "GPIOD Libraries: ${GPIOD_LIBRARIES}")
 
-# Forcer le chemin absolu
+# Debug configuration
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3 -O0")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3 -O0")
+
+# Release configuration
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+
+# RelWithDebInfo configuration
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O2 -g -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -g -DNDEBUG")
+
+# MinSizeRel configuration
+set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -Os -DNDEBUG")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -Os -DNDEBUG")
+
+# Force absolute path
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
-# Redéfinir les sources avec le chemin absolu
-set(SOURCES
+# Define base sources (always included)
+set(BASE_SOURCES
     ${PROJECT_ROOT}/dynamicBric_PATO.cpp
     ${PROJECT_ROOT}/network/core.c
     ${PROJECT_ROOT}/assert/xAssert.c
@@ -35,7 +62,15 @@ set(SOURCES
     ${PROJECT_ROOT}/xOs/xOsMutex.c
 )
 
-set(HEADERS
+# Raspberry Pi specific sources
+set(RASPBERRY_SOURCES
+    ${PROJECT_ROOT}/xProtocol/xUart.c
+    ${PROJECT_ROOT}/xProtocol/xSpi.c
+    ${PROJECT_ROOT}/xProtocol/xGpio.c
+)
+
+# Base headers
+set(BASE_HEADERS
     ${PROJECT_ROOT}/dynamicBric_PATO.h
     ${PROJECT_ROOT}/network/core.h
     ${PROJECT_ROOT}/assert/xAssert.h
@@ -44,10 +79,34 @@ set(HEADERS
     ${PROJECT_ROOT}/xOs/xOsMutex.h
 )
 
-# Créer la bibliothèque avec les sources
+# Raspberry Pi specific headers
+set(RASPBERRY_HEADERS
+    ${PROJECT_ROOT}/xProtocol/xUart.h
+    ${PROJECT_ROOT}/xProtocol/xSpi.h
+    ${PROJECT_ROOT}/xProtocol/xGpio.h
+)
+
+# Configure sources based on Raspberry Pi mode
+if(ENABLE_RASPBERRY)
+    set(SOURCES ${BASE_SOURCES} ${RASPBERRY_SOURCES})
+    set(HEADERS ${BASE_HEADERS} ${RASPBERRY_HEADERS})
+else()
+    set(SOURCES ${BASE_SOURCES})
+    set(HEADERS ${BASE_HEADERS})
+endif()
+
+# Create library
 add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
 
-# Ajuster les chemins d'inclusion
+# Configure definitions based on Raspberry Pi mode
+if(ENABLE_RASPBERRY)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE 
+        _RASPBERRY
+        RPI_${RPI_VERSION}
+    )
+endif()
+
+# Adjust include paths
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -55,22 +114,25 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/network
         ${CMAKE_CURRENT_SOURCE_DIR}/assert
         ${CMAKE_CURRENT_SOURCE_DIR}/xOs
+        ${CMAKE_CURRENT_SOURCE_DIR}/xProtocol
+        ${GPIOD_INCLUDE_DIRS}
 )
 
-
-
-# Définir les options du compilateur de manière moderne
+# Compiler options
 if(MSVC)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
-        DYNAMICBRIC_PATO_EXPORTS
-    )
-    
+    target_compile_definitions(${PROJECT_NAME} PRIVATE DYNAMICBRIC_PATO_EXPORTS)
     target_compile_options(${PROJECT_NAME} PRIVATE
         /W4
-        $<$<CONFIG:Release>:/O2>
-        $<$<CONFIG:Debug>:/Od /RTC1>
+        $<$<CONFIG:Debug>:/Od /RTC1 /Zi /MDd>
+        $<$<CONFIG:Release>:/O2 /Oi /Gy /MD>
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /MD>
+        $<$<CONFIG:MinSizeRel>:/O1 /MD>
         /wd4100
         /wd4189
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:/LTCG>
+        $<$<CONFIG:MinSizeRel>:/LTCG>
     )
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE
@@ -78,7 +140,10 @@ else()
         -Wextra
         -Wpedantic
         -Werror
-        $<$<CONFIG:Release>:-O2>
+        $<$<CONFIG:Debug>:-g3 -O0 -fno-omit-frame-pointer>
+        $<$<CONFIG:Release>:-O3 -march=native -flto>
+        $<$<CONFIG:RelWithDebInfo>:-O2 -g -march=native>
+        $<$<CONFIG:MinSizeRel>:-Os -march=native>
         -fdiagnostics-color=always
         -Wno-unused-parameter
         -Wno-unused-variable
@@ -87,9 +152,21 @@ else()
         -Wno-unused-value
         -Wno-unused-local-typedefs
     )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        $<$<CONFIG:Release>:-flto>
+        $<$<CONFIG:MinSizeRel>:-flto>
+    )
 endif()
 
-# Définir les standards C et C++
+# Add conditional definitions based on build type
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG _DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
+    $<$<CONFIG:RelWithDebInfo>:NDEBUG>
+    $<$<CONFIG:MinSizeRel>:NDEBUG>
+)
+
+# C and C++ standards
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD 17
@@ -100,15 +177,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+# Unix specific settings
 if(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         _POSIX_C_SOURCE=200809L
         _GNU_SOURCE
         _XOPEN_SOURCE=700
     )
-    target_link_libraries(${PROJECT_NAME} PRIVATE pthread rt)
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        pthread 
+        rt
+        ${GPIOD_LIBRARIES}
+    )
 endif()
-
 
 # Installation
 include(GNUInstallDirs)
@@ -121,3 +202,13 @@ install(TARGETS ${PROJECT_NAME}
 install(FILES ${HEADERS}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
+
+# Output configuration summary
+message(STATUS "Configuration Summary:")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Raspberry Pi Support: ${ENABLE_RASPBERRY}")
+message(STATUS "  Raspberry Pi Version: ${RPI_VERSION}")
+message(STATUS "  C++ Standard: 20")
+message(STATUS "  C Standard: 17")
+message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "  GPIOD Support: ${GPIOD_FOUND}")

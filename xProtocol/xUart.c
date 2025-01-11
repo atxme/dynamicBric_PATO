@@ -6,9 +6,9 @@
 // Written : 14/11/2024
 ////////////////////////////////////////////////////////////
 
-#ifdef _RASPBERRY
 
-#include "xOs/xUart.h"
+
+#include "xUart.h"
 #include "assert/xAssert.h"
 #include <sys/ioctl.h>
 
@@ -211,4 +211,4 @@ int uartClose(xos_uart_t* p_ptUart)
     return UART_OK;
 }
 
-#endif // _RASPBERRY
+
