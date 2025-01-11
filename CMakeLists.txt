@@ -55,7 +55,7 @@ get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 # Define base sources (always included)
 set(BASE_SOURCES
     ${PROJECT_ROOT}/dynamicBric_PATO.cpp
-    ${PROJECT_ROOT}/network/core.c
+    ${PROJECT_ROOT}/network/xNetwork.c
     ${PROJECT_ROOT}/assert/xAssert.c
     ${PROJECT_ROOT}/xOs/xTask.c
     ${PROJECT_ROOT}/xOs/xOsCritical.c
@@ -67,12 +67,14 @@ set(RASPBERRY_SOURCES
     ${PROJECT_ROOT}/xProtocol/xUart.c
     ${PROJECT_ROOT}/xProtocol/xSpi.c
     ${PROJECT_ROOT}/xProtocol/xGpio.c
+    ${PROJECT_ROOT}/xProtocol/xI2c.c
+    ${PROJECT_ROOT}/xProtocol/xPwm.c
 )
 
 # Base headers
 set(BASE_HEADERS
     ${PROJECT_ROOT}/dynamicBric_PATO.h
-    ${PROJECT_ROOT}/network/core.h
+    ${PROJECT_ROOT}/network/xNetwork.h
     ${PROJECT_ROOT}/assert/xAssert.h
     ${PROJECT_ROOT}/xOs/xTask.h
     ${PROJECT_ROOT}/xOs/xOsCritical.h
@@ -84,6 +86,8 @@ set(RASPBERRY_HEADERS
     ${PROJECT_ROOT}/xProtocol/xUart.h
     ${PROJECT_ROOT}/xProtocol/xSpi.h
     ${PROJECT_ROOT}/xProtocol/xGpio.h
+    ${PROJECT_ROOT}/xProtocol/xI2c.h
+    ${PROJECT_ROOT}/xProtocol/xPwm.h
 )
 
 # Configure sources based on Raspberry Pi mode
