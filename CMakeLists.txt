@@ -11,8 +11,10 @@ option(ENABLE_RASPBERRY "Enable Raspberry Pi specific code" ON)
 option(RPI_VERSION "Raspberry Pi Version (4 or 5)" 4)
 
 # Required for libgpiod
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GPIOD REQUIRED libgpiod)
+if (RPI_VERSION)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GPIOD REQUIRED libgpiod)
+endif()
 
 if(POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
@@ -60,19 +62,12 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xTask.c
     ${PROJECT_ROOT}/xOs/xOsCritical.c
     ${PROJECT_ROOT}/xOs/xOsMutex.c
+    ${PROJECT_ROOT}/xOs/xOsHorodateur.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/hash/xHash.c
     ${PROJECT_ROOT}/memory/xMemory.c
     ${PROJECT_ROOT}/timer/xTimer.c
-)
-
-# Raspberry Pi specific sources
-set(RASPBERRY_SOURCES
-    ${PROJECT_ROOT}/xProtocol/xUart.c
-    ${PROJECT_ROOT}/xProtocol/xSpi.c
-    ${PROJECT_ROOT}/xProtocol/xGpio.c
-    ${PROJECT_ROOT}/xProtocol/xI2c.c
-    ${PROJECT_ROOT}/xProtocol/xPwm.c
+    ${PROJECT_ROOT}/xLog/xLog.c
 )
 
 # Base headers
@@ -83,9 +78,20 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/xOs/xTask.h
     ${PROJECT_ROOT}/xOs/xOsCritical.h
     ${PROJECT_ROOT}/xOs/xOsMutex.h
+    ${PROJECT_ROOT}/xOs/xOsHorodateur.h
     ${PROJECT_ROOT}/hash/xHash.h
     ${PROJECT_ROOT}/memory/xMemory.h
     ${PROJECT_ROOT}/timer/xTimer.h
+    ${PROJECT_ROOT}/xLog/xLog.h
+)
+
+# Raspberry Pi specific sources
+set(RASPBERRY_SOURCES
+    ${PROJECT_ROOT}/xProtocol/xUart.c
+    ${PROJECT_ROOT}/xProtocol/xSpi.c
+    ${PROJECT_ROOT}/xProtocol/xGpio.c
+    ${PROJECT_ROOT}/xProtocol/xI2c.c
+    ${PROJECT_ROOT}/xProtocol/xPwm.c
 )
 
 # Raspberry Pi specific headers

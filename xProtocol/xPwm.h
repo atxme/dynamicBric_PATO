@@ -12,6 +12,7 @@
 
 #ifdef _RASPBERRY
 #include <stdint.h>
+#include <string.h>
 
 // PWM error codes
 #define XOS_PWM_OK              0

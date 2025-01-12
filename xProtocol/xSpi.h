@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
+#include <string.h>
 
 // SPI error codes
 #define SPI_OK              0
