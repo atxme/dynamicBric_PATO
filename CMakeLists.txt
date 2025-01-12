@@ -60,6 +60,10 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xTask.c
     ${PROJECT_ROOT}/xOs/xOsCritical.c
     ${PROJECT_ROOT}/xOs/xOsMutex.c
+    ${PROJECT_ROOT}/timer/xTimer.c
+    ${PROJECT_ROOT}/hash/xHash.c
+    ${PROJECT_ROOT}/memory/xMemory.c
+    ${PROJECT_ROOT}/timer/xTimer.c
 )
 
 # Raspberry Pi specific sources
@@ -79,6 +83,9 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/xOs/xTask.h
     ${PROJECT_ROOT}/xOs/xOsCritical.h
     ${PROJECT_ROOT}/xOs/xOsMutex.h
+    ${PROJECT_ROOT}/hash/xHash.h
+    ${PROJECT_ROOT}/memory/xMemory.h
+    ${PROJECT_ROOT}/timer/xTimer.h
 )
 
 # Raspberry Pi specific headers
@@ -191,6 +198,8 @@ if(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE 
         pthread 
         rt
+        ssl
+        crypto
         ${GPIOD_LIBRARIES}
     )
 endif()
