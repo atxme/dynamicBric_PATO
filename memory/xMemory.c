@@ -3,7 +3,7 @@
 //  implements the memory management functions
 //
 // general discloser: copy or share the file is forbidden
-// Written : 11/01/2025
+// Written : 12/01/2025
 ////////////////////////////////////////////////////////////
 
 #include "xMemory.h"
@@ -13,13 +13,56 @@
 #include <string.h>
 
 // Global memory manager
-static xMemoryManager_t g_tMemoryManager = { 0 };
+static xMemoryManager_t s_tMemoryManager = { 0 };
+
+static void calculateMetaHash(xMemoryBlock_t* p_ptBlock)
+{
+	X_ASSERT(p_ptBlock != NULL);
+    uint8_t l_ucBuffer[sizeof(xMemoryBlock_t)];
+    size_t l_ulHashSize;
+
+    // Copy metadata excluding hash field
+    memcpy(l_ucBuffer, &p_ptBlock->t_ulCanaryPrefix, sizeof(unsigned long));
+    memcpy(l_ucBuffer + sizeof(unsigned long), &p_ptBlock->t_ptAddress,
+        offsetof(xMemoryBlock_t, t_ucMetaHash) - offsetof(xMemoryBlock_t, t_ptAddress));
+
+    xHashCalculate(XOS_HASH_TYPE_SHA256, l_ucBuffer,
+        offsetof(xMemoryBlock_t, t_ucMetaHash),
+        p_ptBlock->t_ucMetaHash, &l_ulHashSize);
+}
+
+static int checkBlockIntegrity(xMemoryBlock_t* p_ptBlock)
+{
+    X_ASSERT(p_ptBlock != NULL);
+	X_ASSERT_RETURN(p_ptBlock->t_ulCanaryPrefix == XOS_MEM_CANARY_PREFIX && 
+                    p_ptBlock->t_ulCanarySuffix == XOS_MEM_CANARY_SUFFIX, 
+                    XOS_MEM_CORRUPTION);
+
+    uint8_t l_ucCurrentHash[32];
+    size_t l_ulHashSize;
+    uint8_t l_ucBuffer[sizeof(xMemoryBlock_t)];
+
+    memcpy(l_ucBuffer, &p_ptBlock->t_ulCanaryPrefix, sizeof(unsigned long));
+    memcpy(l_ucBuffer + sizeof(unsigned long), &p_ptBlock->t_ptAddress,
+        offsetof(xMemoryBlock_t, t_ucMetaHash) - offsetof(xMemoryBlock_t, t_ptAddress));
+
+    xHashCalculate(XOS_HASH_TYPE_SHA256, l_ucBuffer,
+        offsetof(xMemoryBlock_t, t_ucMetaHash),
+        l_ucCurrentHash, &l_ulHashSize);
+
+    if (memcmp(l_ucCurrentHash, p_ptBlock->t_ucMetaHash, 32) != 0)
+    {
+        return XOS_MEM_CORRUPTION;
+    }
+
+    return XOS_MEM_OK;
+}
 
 int xMemInit(void)
 {
-    X_ASSERT_RETURN(g_tMemoryManager.t_ptBlocks == NULL, XOS_MEM_ALREADY_INIT);
+    X_ASSERT(s_tMemoryManager.t_ptBlocks == NULL);
 
-    memset(&g_tMemoryManager, 0, sizeof(xMemoryManager_t));
+    memset(&s_tMemoryManager, 0, sizeof(xMemoryManager_t));
     return XOS_MEM_OK;
 }
 
@@ -28,11 +71,9 @@ void* xMemAlloc(size_t p_ulSize, const char* p_ptkcFile, int p_iLine)
     X_ASSERT(p_ulSize > 0);
     X_ASSERT(p_ptkcFile != NULL);
 
-    // Allouer le bloc mémoire
     void* l_ptPtr = malloc(p_ulSize);
     if (l_ptPtr == NULL) return NULL;
 
-    // Créer le bloc de suivi
     xMemoryBlock_t* l_ptBlock = malloc(sizeof(xMemoryBlock_t));
     if (l_ptBlock == NULL)
     {
@@ -40,34 +81,23 @@ void* xMemAlloc(size_t p_ulSize, const char* p_ptkcFile, int p_iLine)
         return NULL;
     }
 
-    // Initialiser le bloc
+    l_ptBlock->t_ulCanaryPrefix = XOS_MEM_CANARY_PREFIX;
     l_ptBlock->t_ptAddress = l_ptPtr;
     l_ptBlock->t_ulSize = p_ulSize;
     l_ptBlock->t_ptkcFile = p_ptkcFile;
     l_ptBlock->t_iLine = p_iLine;
+    l_ptBlock->t_ulCanarySuffix = XOS_MEM_CANARY_SUFFIX;
 
-    // Calculer le hash SHA256
-    size_t l_ulHashSize;
-    int l_iRet = xHashCalculate(XOS_HASH_TYPE_SHA256, l_ptPtr, p_ulSize,
-        l_ptBlock->t_ucHash, &l_ulHashSize);
+    calculateMetaHash(l_ptBlock);
 
-    if (l_iRet != XOS_HASH_OK)
+    l_ptBlock->t_ptNext = s_tMemoryManager.t_ptBlocks;
+    s_tMemoryManager.t_ptBlocks = l_ptBlock;
+
+    s_tMemoryManager.t_ulTotalAllocated += p_ulSize;
+    s_tMemoryManager.t_ulAllocCount++;
+    if (s_tMemoryManager.t_ulTotalAllocated > s_tMemoryManager.t_ulPeakUsage)
     {
-        free(l_ptPtr);
-        free(l_ptBlock);
-        return NULL;
-    }
-
-    // Ajouter à la liste
-    l_ptBlock->t_ptNext = g_tMemoryManager.t_ptBlocks;
-    g_tMemoryManager.t_ptBlocks = l_ptBlock;
-
-    // Mettre à jour les statistiques
-    g_tMemoryManager.t_ulTotalAllocated += p_ulSize;
-    g_tMemoryManager.t_ulAllocCount++;
-    if (g_tMemoryManager.t_ulTotalAllocated > g_tMemoryManager.t_ulPeakUsage)
-    {
-        g_tMemoryManager.t_ulPeakUsage = g_tMemoryManager.t_ulTotalAllocated;
+        s_tMemoryManager.t_ulPeakUsage = s_tMemoryManager.t_ulTotalAllocated;
     }
 
     return l_ptPtr;
@@ -77,42 +107,30 @@ int xMemFree(void* p_ptPtr)
 {
     X_ASSERT(p_ptPtr != NULL);
 
-    xMemoryBlock_t* l_ptCurrent = g_tMemoryManager.t_ptBlocks;
+    xMemoryBlock_t* l_ptCurrent = s_tMemoryManager.t_ptBlocks;
     xMemoryBlock_t* l_ptPrev = NULL;
 
     while (l_ptCurrent != NULL)
     {
         if (l_ptCurrent->t_ptAddress == p_ptPtr)
         {
-            // Vérifier l'intégrité avec le hash SHA256
-            uint8_t l_ucCurrentHash[XOS_HASH_SHA256_SIZE];
-            size_t l_ulHashSize;
-
-            int l_iRet = xHashCalculate(XOS_HASH_TYPE_SHA256, p_ptPtr,
-                l_ptCurrent->t_ulSize,
-                l_ucCurrentHash, &l_ulHashSize);
-
-            if (l_iRet != XOS_HASH_OK ||
-                memcmp(l_ucCurrentHash, l_ptCurrent->t_ucHash, XOS_HASH_SHA256_SIZE) != 0)
+            if (checkBlockIntegrity(l_ptCurrent) != XOS_MEM_OK)
             {
                 return XOS_MEM_CORRUPTION;
             }
 
-            // Mettre à jour la liste chaînée
             if (l_ptPrev == NULL)
             {
-                g_tMemoryManager.t_ptBlocks = l_ptCurrent->t_ptNext;
+                s_tMemoryManager.t_ptBlocks = l_ptCurrent->t_ptNext;
             }
             else
             {
                 l_ptPrev->t_ptNext = l_ptCurrent->t_ptNext;
             }
 
-            // Mettre à jour les statistiques
-            g_tMemoryManager.t_ulTotalAllocated -= l_ptCurrent->t_ulSize;
-            g_tMemoryManager.t_ulFreeCount++;
+            s_tMemoryManager.t_ulTotalAllocated -= l_ptCurrent->t_ulSize;
+            s_tMemoryManager.t_ulFreeCount++;
 
-            // Libérer la mémoire
             free(p_ptPtr);
             free(l_ptCurrent);
 
@@ -131,34 +149,23 @@ int xMemGetStats(size_t* p_pulTotal, size_t* p_pulPeak, size_t* p_pulCount)
     X_ASSERT(p_pulPeak != NULL);
     X_ASSERT(p_pulCount != NULL);
 
-    *p_pulTotal = g_tMemoryManager.t_ulTotalAllocated;
-    *p_pulPeak = g_tMemoryManager.t_ulPeakUsage;
-    *p_pulCount = g_tMemoryManager.t_ulAllocCount;
+    *p_pulTotal = s_tMemoryManager.t_ulTotalAllocated;
+    *p_pulPeak = s_tMemoryManager.t_ulPeakUsage;
+    *p_pulCount = s_tMemoryManager.t_ulAllocCount;
 
     return XOS_MEM_OK;
 }
 
 int xMemCheck(void)
 {
-    xMemoryBlock_t* l_ptCurrent = g_tMemoryManager.t_ptBlocks;
+    xMemoryBlock_t* l_ptCurrent = s_tMemoryManager.t_ptBlocks;
 
     while (l_ptCurrent != NULL)
     {
-        uint8_t l_ucCurrentHash[XOS_HASH_SHA256_SIZE];
-        size_t l_ulHashSize;
-
-        int l_iRet = xHashCalculate(XOS_HASH_TYPE_SHA256,
-            l_ptCurrent->t_ptAddress,
-            l_ptCurrent->t_ulSize,
-            l_ucCurrentHash,
-            &l_ulHashSize);
-
-        if (l_iRet != XOS_HASH_OK ||
-            memcmp(l_ucCurrentHash, l_ptCurrent->t_ucHash, XOS_HASH_SHA256_SIZE) != 0)
+        if (checkBlockIntegrity(l_ptCurrent) != XOS_MEM_OK)
         {
             return XOS_MEM_CORRUPTION;
         }
-
         l_ptCurrent = l_ptCurrent->t_ptNext;
     }
 
@@ -167,7 +174,7 @@ int xMemCheck(void)
 
 int xMemCleanup(void)
 {
-    xMemoryBlock_t* l_ptCurrent = g_tMemoryManager.t_ptBlocks;
+    xMemoryBlock_t* l_ptCurrent = s_tMemoryManager.t_ptBlocks;
 
     while (l_ptCurrent != NULL)
     {
@@ -177,6 +184,6 @@ int xMemCleanup(void)
         l_ptCurrent = l_ptNext;
     }
 
-    memset(&g_tMemoryManager, 0, sizeof(xMemoryManager_t));
+    memset(&s_tMemoryManager, 0, sizeof(xMemoryManager_t));
     return XOS_MEM_OK;
 }

@@ -3,7 +3,7 @@
 //  defines the memory management types and functions
 //
 // general discloser: copy or share the file is forbidden
-// Written : 11/01/2025
+// Written : 12/01/2025
 ////////////////////////////////////////////////////////////
 #pragma once
 
@@ -14,27 +14,33 @@
 #include <stdint.h>
 
 // Memory error codes
-#define XOS_MEM_OK           0
-#define XOS_MEM_ERROR       -1
-#define XOS_MEM_INVALID     -2
-#define XOS_MEM_OVERFLOW    -3
-#define XOS_MEM_UNDERFLOW   -4
-#define XOS_MEM_CORRUPTION  -5
+#define XOS_MEM_OK            0
+#define XOS_MEM_ERROR        -1
+#define XOS_MEM_INVALID      -2
+#define XOS_MEM_OVERFLOW     -3
+#define XOS_MEM_UNDERFLOW    -4
+#define XOS_MEM_CORRUPTION   -5
 #define XOS_MEM_ALREADY_INIT -6
 
+// Memory canary values
+#define XOS_MEM_CANARY_PREFIX 0xDEADBEEFUL
+#define XOS_MEM_CANARY_SUFFIX 0xBEEFDEADUL
+
 // Memory block structure
-typedef struct xMemoryBlock 
+typedef struct xMemoryBlock
 {
+    unsigned long t_ulCanaryPrefix;  // Canary prefix for underflow detection
     void* t_ptAddress;              // Allocated address
     size_t t_ulSize;                // Block size
     const char* t_ptkcFile;         // Source file
     int t_iLine;                    // Line number
-    unsigned char t_ucHash[32];     // SHA256 hash of the block for integrity 
+    unsigned char t_ucMetaHash[32]; // SHA256 hash of metadata for integrity
+    unsigned long t_ulCanarySuffix; // Canary suffix for overflow detection
     struct xMemoryBlock* t_ptNext;  // Next block in list
 } xMemoryBlock_t;
 
 // Memory manager structure
-typedef struct 
+typedef struct
 {
     xMemoryBlock_t* t_ptBlocks;     // List of allocated blocks
     size_t t_ulTotalAllocated;      // Total allocated memory
@@ -107,9 +113,9 @@ int xMemCheck(void);
 int xMemCleanup(void);
 
 // Macro helpers for source tracking
-#define X_MALLOC(size)      xMemAlloc(size, __FILE__, __LINE__)
-#define X_CALLOC(count, size) xMemCalloc(count, size, __FILE__, __LINE__)
-#define X_REALLOC(ptr, size) xMemRealloc(ptr, size, __FILE__, __LINE__)
-#define X_FREE(ptr)         xMemFree(ptr)
+#define X_MALLOC(size)           xMemAlloc(size, __FILE__, __LINE__)
+#define X_CALLOC(count, size)    xMemCalloc(count, size, __FILE__, __LINE__)
+#define X_REALLOC(ptr, size)     xMemRealloc(ptr, size, __FILE__, __LINE__)
+#define X_FREE(ptr)              xMemFree(ptr)
 
 #endif // XOS_MEMORY_H_

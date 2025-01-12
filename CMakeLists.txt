@@ -60,6 +60,10 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xTask.c
     ${PROJECT_ROOT}/xOs/xOsCritical.c
     ${PROJECT_ROOT}/xOs/xOsMutex.c
+    ${PROJECT_ROOT}/timer/xTimer.c
+    ${PROJECT_ROOT}/hash/xHash.c
+    ${PROJECT_ROOT}/memory/xMemory.c
+    ${PROJECT_ROOT}/timer/xTimer.c
 )
 
 # Raspberry Pi specific sources
@@ -69,8 +73,6 @@ set(RASPBERRY_SOURCES
     ${PROJECT_ROOT}/xProtocol/xGpio.c
     ${PROJECT_ROOT}/xProtocol/xI2c.c
     ${PROJECT_ROOT}/xProtocol/xPwm.c
-    ${PROJECT_ROOT}/hash/xHash.c
-    ${PROJECT_ROOT}/memory/xMemory.c
 )
 
 # Base headers
@@ -83,6 +85,7 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/xOs/xOsMutex.h
     ${PROJECT_ROOT}/hash/xHash.h
     ${PROJECT_ROOT}/memory/xMemory.h
+    ${PROJECT_ROOT}/timer/xTimer.h
 )
 
 # Raspberry Pi specific headers
