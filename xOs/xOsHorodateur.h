@@ -21,6 +21,12 @@
 /// @brief Get current formatted timestamp
 /// @return Pointer to static timestamp string
 //////////////////////////////////
-const char* xHorodateurGet(void);
+const char* xHorodateurGetString(void);
+
+//////////////////////////////////
+/// @brief Get current timestamp in seconds
+/// @return Current Unix timestamp
+//////////////////////////////////
+uint32_t xHorodateurGet(void);
 
 #endif // XOS_HORODATEUR_H_

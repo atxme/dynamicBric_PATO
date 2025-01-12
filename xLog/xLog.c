@@ -54,7 +54,7 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     va_end(l_tArgs);
 
     // Récupère l'horodatage
-    const char* l_ptcTimestamp = xHorodateurGet();
+    const char* l_ptcTimestamp = xHorodateurGetString();
     if (l_ptcTimestamp == NULL)
     {
         return XOS_LOG_ERROR;
