@@ -1,146 +1,39 @@
 ////////////////////////////////////////////////////////////
-//  assert scource file
-//  
+//  assert source file
+//  implements assert functions
 //
 // general discloser: copy or share the file is forbidden
-// Written : 14/11/2024
+// Written : 12/01/2025
 ////////////////////////////////////////////////////////////
 
 #include "xAssert.h"
+#include "xLog/xLog.h"
+#include <stdlib.h>
 
-
-////////////////////////////////////////////////////////
-/// loadLogFilePath
-////////////////////////////////////////////////////////
-bool loadLogFilePath(char* p_ptcLogFilePath)
+void xAssert(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg)
 {
-	if (p_ptcLogFilePath == NULL)
-	{
-		printf("ASSERT Error: invalid log file path\n");
-		return 0;
-	}
+    X_LOG_ASSERT("%s", "Assertion failed");
 
-	s_ptcLogFilePath = p_ptcLogFilePath;
+    if (p_ptMsg != NULL)
+    {
+        X_LOG_ASSERT("%s", (const char*)p_ptMsg);
+    }
 
-	bool l_bIsValid = false;
-
-	FILE* l_ptFile = fopen(s_ptcLogFilePath, "w");
-
-	if (l_ptFile != NULL)
-	{
-		l_bIsValid = true;
-		fclose(l_ptFile);
-	}
-
-	else
-	{
-		printf("ASSERT Error: invalid log file path or impossible to open the file\n");
-	}
-
-	return l_bIsValid;
-	
+#if defined(XOS_ASSERT_MODE_EXIT)
+    exit(1);
+#elif defined(XOS_ASSERT_MODE_LOOP)
+    while (1);
+#endif
 }
 
-////////////////////////////////////////////////////////
-/// assert
-////////////////////////////////////////////////////////
-void assert(uint8_t* p_pFileName, uint32_t p_uiLine, void* p_ptLog)
+int xAssertReturn(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg, int p_iRet)
 {
+    X_LOG_ASSERT("Assertion failed with return value %d", p_iRet);
 
-	if (s_bIsLogToFile)
-	{
-		//open the log file 
-		FILE* l_ptFile = fopen(s_ptcLogFilePath, "a");
+    if (p_ptMsg != NULL)
+    {
+        X_LOG_ASSERT("%s", (const char*)p_ptMsg);
+    }
 
-		if (l_ptFile == NULL)
-		{
-			printf("ASSERT Error: impossible to open the log file\n");
-			printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-			printf("ASSERT log message: %s\n", (char*)p_ptLog);
-			return;
-		}
-
-		else
-		{
-			//write the log message to the file
-			fprintf(l_ptFile, "ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-
-			if (p_ptLog != NULL)
-			{
-				fprintf(l_ptFile, "ASSERT log message: %s\n", (char*)p_ptLog);
-			}
-
-		}
-	}
-
-	else
-	{
-		printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-
-		if (p_ptLog != NULL)
-		{
-			printf("ASSERT log message: %s\n", (char*)p_ptLog);
-		}
-
-	}
-
-#ifdef ASSERT_LOOP
-	printf("Start infinite loop\n");
-	while (1);
-#elif ASSERT_EXIT
-	exit(1);
-#elif ASSERT_CONTINUE
-	return;
-#else
-#error "No assert option is defined"
-#endif // ASSERT_CONTINUE
-
-
-}
-
-//////////////////////////////////
-/// @brief assert function
-/// @note this is the assert function with a return value. This function will not end the execution !!!!!
-/// @param p_pFileName : file name
-/// @param p_uiLine : line number
-/// @param p_ptLog : log pointer
-///////////////////////////////////
-int assertValueWithReturn(uint8_t* p_pFileName, uint32_t p_uiLine, void* p_ptLog, int ret)
-{
-	if (s_bIsLogToFile)
-	{
-		//open the log file 
-		FILE* l_ptFile = fopen(s_ptcLogFilePath, "a");
-
-		if (l_ptFile == NULL)
-		{
-			printf("ASSERT Error: impossible to open the log file\n");
-			printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-			printf("ASSERT log message: %s\n", (char*)p_ptLog);
-		}
-
-		else
-		{
-			//write the log message to the file
-			fprintf(l_ptFile, "ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-
-			if (p_ptLog != NULL)
-			{
-				fprintf(l_ptFile, "ASSERT log message: %s\n", (char*)p_ptLog);
-			}
-
-		}
-	}
-
-	else
-	{
-		printf("ASSERT Error: %s, %d\n", p_pFileName, p_uiLine);
-
-		if (p_ptLog != NULL)
-		{
-			printf("ASSERT log message: %s\n", (char*)p_ptLog);
-		}
-
-	}
-	return ret;
+    return p_iRet;
 }

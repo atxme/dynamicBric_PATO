@@ -13,6 +13,7 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <string.h>
+#include <stdio.h>
 
 #ifdef _RASPBERRY
 

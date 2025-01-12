@@ -13,6 +13,7 @@
 #ifdef _RASPBERRY
 #include <stdint.h>
 #include <gpiod.h>
+#include <string.h>
 
 // GPIO error codes
 #define GPIO_OK              0
