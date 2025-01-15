@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CONFIGURATION_TYPES Release CACHE STRING "Configuration types" FORCE)
 
+#compilation avec ninja
+set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
+
 # Option to enable/disable Raspberry Pi mode and version
 option(ENABLE_RASPBERRY "Enable Raspberry Pi specific code" ON)
 option(RPI_VERSION "Raspberry Pi Version (4 or 5)" 4)
@@ -57,8 +60,20 @@ set(RASPBERRY_SOURCES
 
 # Test sources
 set(TEST_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_event_handler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_assert.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_critical.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_event_handler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_event_queue.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_events.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_horodateur.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_log.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_memory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_mutex.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_network.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_tasks.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_timer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
+
     # Ajoutez ici vos autres fichiers de test
 )
 
