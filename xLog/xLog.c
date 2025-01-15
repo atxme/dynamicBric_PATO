@@ -81,8 +81,24 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     
     va_end(args);
 
-    // Écrire le log
-    l_iRet = writeLogMessage(p_ptkcFile, p_ulLine, l_cBuffer);
+    // Écrire le log dans le fichier
+    if (s_tLogConfig.t_bLogToConsole)
+    {
+        printf("%s | %s:%d | %s\n", xHorodateurGetString(), p_ptkcFile, p_ulLine, l_cBuffer);
+    }
+
+    if (s_tLogConfig.t_bLogToFile)
+    {
+        FILE* l_ptFile = fopen(s_tLogConfig.t_cLogPath, "a");
+        if (l_ptFile == NULL)
+        {
+            mutexUnlock(&s_tLogMutex);
+            return XOS_LOG_ERROR;
+        }
+
+        fprintf(l_ptFile, "%s | %s:%d | %s\n", xHorodateurGetString(), p_ptkcFile, p_ulLine, l_cBuffer);
+        fclose(l_ptFile);
+    }
 
     mutexUnlock(&s_tLogMutex);
     return l_iRet;

@@ -55,6 +55,7 @@ typedef enum {
 #define XOS_EVENT_FLAG_QUEUED        0x04    // Event is queued if busy
 #define XOS_EVENT_FLAG_ASYNC         0x08    // Event processed asynchronously
 #define XOS_EVENT_FLAG_PERIODIC      0x10    // Event occurs periodically
+#define XOS_EVENT_FLAG_PRIORITY      0x12    // Event priority is enforced
 
 // Event statistics structure
 typedef struct {

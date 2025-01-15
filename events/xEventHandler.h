@@ -14,7 +14,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+//////////////////////////////////
 // Handler error codes
+//////////////////////////////////
 #define XOS_EVENT_HANDLER_OK               0
 #define XOS_EVENT_HANDLER_ERROR           -1
 #define XOS_EVENT_HANDLER_INVALID         -2
@@ -22,18 +24,24 @@
 #define XOS_EVENT_HANDLER_NOT_FOUND       -4
 #define XOS_EVENT_HANDLER_ALREADY_EXISTS  -5
 #define XOS_EVENT_HANDLER_NOT_INIT        -6
+#define XOS_EVENT_HANDLER_TIMEOUT         -7
 
+//////////////////////////////////
 // Handler limits
+//////////////////////////////////
 #define XOS_EVENT_HANDLER_MAX_SUBSCRIBERS  32
 #define XOS_EVENT_HANDLER_MAX_EVENTS       64
 
+//////////////////////////////////
 // Subscriber structure
+//////////////////////////////////
 typedef struct {
-    uint32_t t_ulEventId;                  // Event identifier
-    xos_event_callback_t t_pfCallback;     // Callback function
-    void* t_ptArg;                         // Callback argument
-    uint8_t t_ucFlags;                     // Subscriber flags
-    bool t_bActive;                        // Active status
+    uint32_t            t_ulEventId;     // Event identifier
+    xos_event_callback_t t_pfCallback;    // Callback function
+    void*               t_ptArg;         // Callback argument
+    uint8_t             t_ucFlags;       // Subscriber flags
+    bool                t_bActive;       // Active status
+    uint32_t            t_ulRefCount;    // Reference counter
 } xos_event_subscriber_t;
 
 //////////////////////////////////

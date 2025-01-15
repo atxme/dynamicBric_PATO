@@ -9,6 +9,7 @@
 #include "xTimer.h"
 #include "xAssert.h"
 #include <string.h>
+#include <unistd.h>
 
 int xTimerCreate(xos_timer_t* p_ptTimer, uint32_t p_ulPeriod, uint8_t p_ucMode)
 {
@@ -91,4 +92,17 @@ int xTimerExpired(xos_timer_t* p_ptTimer)
     }
     
     return XOS_TIMER_TIMEOUT;
+}
+
+uint32_t xTimerGetCurrentMs(void)
+{
+    struct timespec l_tNow;
+    clock_gettime(CLOCK_MONOTONIC, &l_tNow);
+    return (l_tNow.tv_sec * 1000) + (l_tNow.tv_nsec / 1000000);
+}
+
+
+void xTimerDelay(uint32_t p_ulDelay)
+{
+    usleep(p_ulDelay * 1000);
 }

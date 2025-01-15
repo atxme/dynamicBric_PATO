@@ -63,4 +63,16 @@ int xTimerStop(xos_timer_t* p_ptTimer);
 //////////////////////////////////
 int xTimerExpired(xos_timer_t* p_ptTimer);
 
+//////////////////////////////////
+/// @brief get current time in milliseconds
+/// @return current time in milliseconds
+//////////////////////////////////
+uint32_t xTimerGetCurrentMs(void);
+
+//////////////////////////////////
+/// @brief delay 
+/// @param p_ulDelay : delay in milliseconds
+//////////////////////////////////
+void xTimerDelay(uint32_t p_ulDelay);
+
 #endif // XOS_TIMER_H_
