@@ -21,6 +21,7 @@
 #define XOS_EVENT_HANDLER_FULL            -3
 #define XOS_EVENT_HANDLER_NOT_FOUND       -4
 #define XOS_EVENT_HANDLER_ALREADY_EXISTS  -5
+#define XOS_EVENT_HANDLER_NOT_INIT        -6
 
 // Handler limits
 #define XOS_EVENT_HANDLER_MAX_SUBSCRIBERS  32
