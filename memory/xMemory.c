@@ -71,6 +71,18 @@ void* xMemAlloc(size_t p_ulSize, const char* p_ptkcFile, int p_iLine)
     X_ASSERT(p_ulSize > 0);
     X_ASSERT(p_ptkcFile != NULL);
 
+    // Vérification des overflows
+    if (p_ulSize > SIZE_MAX - sizeof(xMemoryBlock_t))
+    {
+        return NULL;
+    }
+
+    // Vérification de la limite maximale
+    if (s_tMemoryManager.t_ulTotalAllocated + p_ulSize > XOS_MEM_MAX_ALLOCATION)
+    {
+        return NULL;
+    }
+
     void* l_ptPtr = malloc(p_ulSize);
     if (l_ptPtr == NULL) return NULL;
 

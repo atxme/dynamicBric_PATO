@@ -156,6 +156,10 @@ int xEventHandlerProcess(xos_event_t* p_ptEvent)
 {
     X_ASSERT(p_ptEvent != NULL);
     
+    // Copie locale des subscribers
+    xos_event_subscriber_t l_tLocalSubscribers[XOS_EVENT_HANDLER_MAX_SUBSCRIBERS];
+    uint32_t l_ulActiveCount = 0;
+    
     int l_iRet = mutexLock(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
@@ -176,24 +180,14 @@ int xEventHandlerProcess(xos_event_t* p_ptEvent)
         return l_iRet;
     }
 
-    // Créer un timer pour le timeout
-    xos_timer_t l_tTimer;
-    l_iRet = xTimerCreate(&l_tTimer, EVENT_CALLBACK_TIMEOUT_MS, XOS_TIMER_MODE_ONESHOT);
-    if (l_iRet != XOS_TIMER_OK)
-    {
-        mutexUnlock(&s_tHandlerMutex);
-        return XOS_EVENT_HANDLER_ERROR;
-    }
-
-    // Copie locale des subscribers pour éviter les modifications pendant l'itération
-    xos_event_subscriber_t l_tLocalSubscribers[XOS_EVENT_HANDLER_MAX_SUBSCRIBERS];
-    uint32_t l_ulActiveCount = 0;
-
+    // Copier les subscribers actifs
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         if (s_tSubscribers[i].t_bActive &&
             s_tSubscribers[i].t_ulEventId == p_ptEvent->t_ulEventId)
         {
+            // Incrémenter le compteur de référence
+            s_tSubscribers[i].t_ulRefCount++;
             memcpy(&l_tLocalSubscribers[l_ulActiveCount], 
                    &s_tSubscribers[i], 
                    sizeof(xos_event_subscriber_t));
@@ -203,36 +197,28 @@ int xEventHandlerProcess(xos_event_t* p_ptEvent)
 
     mutexUnlock(&s_tHandlerMutex);
 
-    // Exécuter les callbacks avec timeout
+    // Exécuter les callbacks
     for (uint32_t i = 0; i < l_ulActiveCount; i++)
     {
         if (l_tLocalSubscribers[i].t_pfCallback != NULL)
         {
-            xTimerStart(&l_tTimer);
-            
-            // Exécuter le callback dans un contexte protégé
-            __try
+            l_tLocalSubscribers[i].t_pfCallback(p_ptEvent, l_tLocalSubscribers[i].t_ptArg);
+        }
+        
+        // Décrémenter le compteur de référence
+        mutexLock(&s_tHandlerMutex);
+        for (uint32_t j = 0; j < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; j++)
+        {
+            if (s_tSubscribers[j].t_ulEventId == l_tLocalSubscribers[i].t_ulEventId &&
+                s_tSubscribers[j].t_pfCallback == l_tLocalSubscribers[i].t_pfCallback)
             {
-                l_tLocalSubscribers[i].t_pfCallback(p_ptEvent, 
-                                                  l_tLocalSubscribers[i].t_ptArg);
-            }
-            __except(EXCEPTION_EXECUTE_HANDLER)
-            {
-                // Log de l'erreur
-                X_LOG_ASSERT("Callback exception in event handler");
-                continue;
-            }
-
-            if (xTimerExpired(&l_tTimer) == XOS_TIMER_OK)
-            {
-                // Log du timeout
-                X_LOG_ASSERT("Callback timeout in event handler");
-                continue;
+                s_tSubscribers[j].t_ulRefCount--;
+                break;
             }
         }
+        mutexUnlock(&s_tHandlerMutex);
     }
 
-    xTimerStop(&l_tTimer);
     return XOS_EVENT_HANDLER_OK;
 }
 

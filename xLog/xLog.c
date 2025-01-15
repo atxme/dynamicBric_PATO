@@ -53,95 +53,39 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     X_ASSERT(p_ptkcFile != NULL);
     X_ASSERT(p_ptkcFormat != NULL);
 
+    // Double-checked locking pattern
+    if (!s_bInitialized)
+    {
+        return XOS_LOG_NOT_INIT;
+    }
+
     int l_iRet = mutexLock(&s_tLogMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_LOG_ERROR;
     }
 
+    // Vérifier à nouveau après avoir acquis le mutex
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tLogMutex);
         return XOS_LOG_NOT_INIT;
     }
+
+    // Formater le message
+    va_list args;
+    va_start(args, p_ptkcFormat);
+    
+    char l_cBuffer[XOS_LOG_MSG_SIZE];
+    vsnprintf(l_cBuffer, sizeof(l_cBuffer), p_ptkcFormat, args);
+    
+    va_end(args);
+
+    // Écrire le log
+    l_iRet = writeLogMessage(p_ptkcFile, p_ulLine, l_cBuffer);
+
     mutexUnlock(&s_tLogMutex);
-
-    char l_cMessage[XOS_LOG_MSG_SIZE / 2];
-    va_list l_tArgs;
-    va_start(l_tArgs, p_ptkcFormat);
-    l_iRet = vsnprintf(l_cMessage, sizeof(l_cMessage), p_ptkcFormat, l_tArgs);
-    va_end(l_tArgs);
-
-    if (l_iRet < 0 || l_iRet >= sizeof(l_cMessage))
-    {
-        return XOS_LOG_ERROR;
-    }
-
-    const char* l_ptcTimestamp = xHorodateurGetString();
-    if (l_ptcTimestamp == NULL)
-    {
-        return XOS_LOG_ERROR;
-    }
-
-    char l_cFinalMessage[XOS_LOG_MSG_SIZE];
-    int l_iLen = snprintf(l_cFinalMessage, XOS_LOG_MSG_SIZE - 1,
-        "%s | %s : %u | %s\n",
-        l_ptcTimestamp, p_ptkcFile, p_ulLine, l_cMessage);
-
-    if (l_iLen < 0 || l_iLen >= XOS_LOG_MSG_SIZE - 1)
-    {
-        return XOS_LOG_ERROR;
-    }
-
-    if (s_tLogConfig.t_bLogToConsole)
-    {
-        l_iRet = mutexLock(&s_tLogMutex);
-        if (l_iRet != MUTEX_OK)
-        {
-            return XOS_LOG_ERROR;
-        }
-        
-        if (printf("%s", l_cFinalMessage) < 0)
-        {
-            mutexUnlock(&s_tLogMutex);
-            return XOS_LOG_ERROR;
-        }
-        
-        mutexUnlock(&s_tLogMutex);
-    }
-
-    if (s_tLogConfig.t_bLogToFile)
-    {
-        l_iRet = mutexLock(&s_tLogMutex);
-        if (l_iRet != MUTEX_OK)
-        {
-            return XOS_LOG_ERROR;
-        }
-
-        FILE* l_ptFile = fopen(s_tLogConfig.t_cLogPath, "a");
-        if (l_ptFile == NULL)
-        {
-            mutexUnlock(&s_tLogMutex);
-            return XOS_LOG_ERROR;
-        }
-
-        if (fprintf(l_ptFile, "%s", l_cFinalMessage) < 0)
-        {
-            fclose(l_ptFile);
-            mutexUnlock(&s_tLogMutex);
-            return XOS_LOG_ERROR;
-        }
-
-        if (fclose(l_ptFile) != 0)
-        {
-            mutexUnlock(&s_tLogMutex);
-            return XOS_LOG_ERROR;
-        }
-
-        mutexUnlock(&s_tLogMutex);
-    }
-
-    return XOS_LOG_OK;
+    return l_iRet;
 }
 
 int xLogClose(void)

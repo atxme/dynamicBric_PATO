@@ -68,18 +68,25 @@ int xTimerExpired(xos_timer_t* p_ptTimer)
     {
         if (p_ptTimer->t_ucMode == XOS_TIMER_MODE_PERIODIC)
         {
-            p_ptTimer->t_tNext.tv_nsec += (p_ptTimer->t_ulPeriod * 1000);
+            // Calculer le prochain déclenchement basé sur le temps absolu
+            uint64_t elapsed_ns = (l_tNow.tv_sec - p_ptTimer->t_tStart.tv_sec) * 1000000000ULL +
+                                (l_tNow.tv_nsec - p_ptTimer->t_tStart.tv_nsec);
+            uint64_t periods = (elapsed_ns / (p_ptTimer->t_ulPeriod * 1000ULL)) + 1;
+            uint64_t next_ns = periods * (p_ptTimer->t_ulPeriod * 1000ULL);
+            
+            p_ptTimer->t_tNext.tv_sec = p_ptTimer->t_tStart.tv_sec + (next_ns / 1000000000ULL);
+            p_ptTimer->t_tNext.tv_nsec = p_ptTimer->t_tStart.tv_nsec + (next_ns % 1000000000ULL);
+            
             if (p_ptTimer->t_tNext.tv_nsec >= 1000000000)
             {
-                p_ptTimer->t_tNext.tv_sec += p_ptTimer->t_tNext.tv_nsec / 1000000000;
-                p_ptTimer->t_tNext.tv_nsec %= 1000000000;
+                p_ptTimer->t_tNext.tv_sec++;
+                p_ptTimer->t_tNext.tv_nsec -= 1000000000;
             }
         }
         else
         {
             p_ptTimer->t_ucActive = 0;
         }
-        
         return XOS_TIMER_OK;
     }
     

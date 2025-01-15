@@ -40,9 +40,15 @@ int osCriticalLock(os_critical_t* p_pttOSCritical)
     }
     else {
         struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-        ts.tv_sec += p_pttOSCritical->ulTimeout / 1000;
-        ts.tv_nsec += (p_pttOSCritical->ulTimeout % 1000) * 1000000;
+        if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+        {
+            return OS_CRITICAL_ERROR;
+        }
+
+        uint64_t nsec = (uint64_t)ts.tv_nsec + 
+                       (uint64_t)(p_pttOSCritical->ulTimeout % 1000) * 1000000ULL;
+        ts.tv_sec += p_pttOSCritical->ulTimeout / 1000 + (nsec / 1000000000ULL);
+        ts.tv_nsec = nsec % 1000000000ULL;
 
         int result = pthread_mutex_timedlock(&p_pttOSCritical->critical, &ts);
         if (result == ETIMEDOUT) {

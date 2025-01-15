@@ -26,6 +26,9 @@
 #define XOS_MEM_CANARY_PREFIX 0xDEADBEEFUL
 #define XOS_MEM_CANARY_SUFFIX 0xBEEFDEADUL
 
+// Memory limits
+#define XOS_MEM_MAX_ALLOCATION 1024 * 1024 * 1024 // 1 GB
+
 // Memory block structure
 typedef struct xMemoryBlock
 {
