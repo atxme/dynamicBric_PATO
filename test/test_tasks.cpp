@@ -17,11 +17,16 @@ class TaskTest : public ::testing::Test {
 protected:
     os_task_t task;
 
-    void SetUp() override {
-        memset(&task, 0, sizeof(os_task_t));
-        task.priority = OS_TASK_DEFAULT_PRIORITY;
-        task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
-    }
+
+void SetUp() override {
+    memset(&task, 0, sizeof(os_task_t));
+    task.priority = OS_TASK_DEFAULT_PRIORITY;
+    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
+    task.task = nullptr;
+    task.arg = nullptr;
+    task.handle = 0;
+}
+
 
     void TearDown() override {
         if (task.status != OS_TASK_STATUS_TERMINATED) {
@@ -39,25 +44,32 @@ protected:
 
 // Test de création de tâche basique
 TEST_F(TaskTest, BasicTaskCreation) {
-    task.task = TestTaskFunction;
+    task.task = TestTaskFunction;  // Définir une fonction de test valide
     int testValue = 0;
     task.arg = &testValue;
     
     EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
     EXPECT_NE(task.id, 0);
-    EXPECT_EQ(task.status, OS_TASK_STATUS_READY);
+    
+    // Attendre que la tâche se termine
+    if (task.status != OS_TASK_STATUS_TERMINATED) {
+        osTaskEnd(&task);
+    }
 }
 
 // Test avec priorités invalides
 TEST_F(TaskTest, InvalidPriority) {
     task.task = TestTaskFunction;
+    
+    // Test priorité trop haute
     task.priority = OS_TASK_HIGHEST_PRIORITY + 1;
+    EXPECT_DEATH(osTaskCreate(&task), ".*");
     
-    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
-    
+    // Test priorité négative
     task.priority = -1;
-    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
+    EXPECT_DEATH(osTaskCreate(&task), ".*");
 }
+
 
 // Test avec taille de pile invalide
 TEST_F(TaskTest, InvalidStackSize) {

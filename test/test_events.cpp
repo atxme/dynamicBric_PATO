@@ -11,6 +11,7 @@
 
 extern "C" {
     #include "events/xEvent.h"
+    #include "xOs/xOsHorodateur.h"
 }
 
 class EventTest : public ::testing::Test {
@@ -22,7 +23,6 @@ protected:
 
 // Test initialisation basique
 TEST_F(EventTest, BasicInitialization) {
-    // Double initialisation doit échouer
     EXPECT_DEATH(xEventInit(), ".*");
 }
 
@@ -35,7 +35,6 @@ TEST_F(EventTest, BasicEventPublish) {
 
 // Test validation des paramètres
 TEST_F(EventTest, InvalidParameters) {
-    // Test données nulles avec taille non nulle
     EXPECT_DEATH(xEventPublish(1, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_MEDIUM,
                  XOS_EVENT_FLAG_NONE, nullptr, 4), ".*");
 }
@@ -44,13 +43,11 @@ TEST_F(EventTest, InvalidParameters) {
 TEST_F(EventTest, EventLimit) {
     int data = 42;
     
-    // Remplir la file d'événements
     for(uint32_t i = 0; i < XOS_EVENT_MAX_EVENTS; i++) {
         EXPECT_EQ(xEventPublish(i + 1, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_MEDIUM,
                   XOS_EVENT_FLAG_NONE, &data, sizeof(data)), XOS_EVENT_OK);
     }
     
-    // Un événement supplémentaire doit échouer
     EXPECT_EQ(xEventPublish(XOS_EVENT_MAX_EVENTS + 1, XOS_EVENT_TYPE_USER,
               XOS_EVENT_PRIORITY_MEDIUM, XOS_EVENT_FLAG_NONE, 
               &data, sizeof(data)), XOS_EVENT_FULL);
@@ -60,7 +57,6 @@ TEST_F(EventTest, EventLimit) {
 TEST_F(EventTest, EventPriorities) {
     int data = 42;
     
-    // Publier des événements avec différentes priorités
     EXPECT_EQ(xEventPublish(1, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_LOW,
               XOS_EVENT_FLAG_NONE, &data, sizeof(data)), XOS_EVENT_OK);
     EXPECT_EQ(xEventPublish(2, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_HIGH,
@@ -76,7 +72,6 @@ TEST_F(EventTest, PersistentEvents) {
     EXPECT_EQ(xEventPublish(1, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_MEDIUM,
               XOS_EVENT_FLAG_PERSISTENT, &data, sizeof(data)), XOS_EVENT_OK);
     
-    // L'événement doit rester après traitement
     EXPECT_EQ(xEventProcess(), XOS_EVENT_OK);
     EXPECT_EQ(xEventProcess(), XOS_EVENT_OK);
 }
@@ -101,7 +96,6 @@ TEST_F(EventTest, EventTimestamp) {
     EXPECT_EQ(xEventPublish(1, XOS_EVENT_TYPE_USER, XOS_EVENT_PRIORITY_MEDIUM,
               XOS_EVENT_FLAG_NONE, &data, sizeof(data)), XOS_EVENT_OK);
     
-    // Vérifier que l'horodatage est cohérent
     EXPECT_GE(xHorodateurGet(), startTime);
 }
 

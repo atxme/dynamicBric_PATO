@@ -1,18 +1,32 @@
 cmake_minimum_required(VERSION 3.12)
 
+#force ninja generator
+set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
+
 # Force Release build for tests
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CONFIGURATION_TYPES Release CACHE STRING "Configuration types" FORCE)
 
-#compilation avec ninja
-set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
+# Détection automatique de la Raspberry Pi
+if(EXISTS "/sys/firmware/devicetree/base/model")
+    file(READ "/sys/firmware/devicetree/base/model" DEVICE_MODEL)
+    if(DEVICE_MODEL MATCHES "Raspberry Pi")
+        set(ENABLE_RASPBERRY ON)
+        # Détection de la version
+        if(DEVICE_MODEL MATCHES "Raspberry Pi 5")
+            set(RPI_VERSION 5)
+        else()
+            set(RPI_VERSION 4)
+        endif()
+    else()
+        set(ENABLE_RASPBERRY OFF)
+    endif()
+else()
+    set(ENABLE_RASPBERRY OFF)
+endif()
 
-# Option to enable/disable Raspberry Pi mode and version
-option(ENABLE_RASPBERRY "Enable Raspberry Pi specific code" ON)
-option(RPI_VERSION "Raspberry Pi Version (4 or 5)" 4)
-
-# Required for libgpiod
-if (RPI_VERSION)
+# Required for libgpiod if on Raspberry Pi
+if(ENABLE_RASPBERRY)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GPIOD REQUIRED libgpiod)
 endif()
@@ -73,8 +87,6 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tasks.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_timer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
-
-    # Ajoutez ici vos autres fichiers de test
 )
 
 # Configure sources based on Raspberry Pi mode
@@ -174,13 +186,17 @@ include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})
 
 # Messages de debug
+message(STATUS "Device detection:")
+message(STATUS "  Raspberry Pi: ${ENABLE_RASPBERRY}")
+if(ENABLE_RASPBERRY)
+    message(STATUS "  Model: ${DEVICE_MODEL}")
+    message(STATUS "  Version: ${RPI_VERSION}")
+endif()
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "Raspberry Pi mode: ${ENABLE_RASPBERRY}")
-message(STATUS "Raspberry Pi version: ${RPI_VERSION}")
 message(STATUS "Test Sources: ${TEST_SOURCES}")
 message(STATUS "Base Sources: ${BASE_SOURCES}")
 if(ENABLE_RASPBERRY)
     message(STATUS "Raspberry Sources: ${RASPBERRY_SOURCES}")
+    message(STATUS "GPIOD Include Dirs: ${GPIOD_INCLUDE_DIRS}")
+    message(STATUS "GPIOD Libraries: ${GPIOD_LIBRARIES}")
 endif()
-message(STATUS "GPIOD Include Dirs: ${GPIOD_INCLUDE_DIRS}")
-message(STATUS "GPIOD Libraries: ${GPIOD_LIBRARIES}")

@@ -39,16 +39,23 @@ TEST_F(AssertTest, FalseAssertionExit) {
 
 // Test X_ASSERT_RETURN avec condition vraie
 TEST_F(AssertTest, AssertReturnTrue) {
-    int result = 0;
-    X_ASSERT_RETURN(true, -1);
-    EXPECT_EQ(result, 0);
+    // Utiliser une fonction helper qui retourne une valeur
+    auto testFunc = []() -> int {
+        X_ASSERT_RETURN(true, -1);
+        return 0;
+    };
+    EXPECT_EQ(testFunc(), 0);
 }
 
 // Test X_ASSERT_RETURN avec condition fausse
 TEST_F(AssertTest, AssertReturnFalse) {
-    int result = X_ASSERT_RETURN(false, -1);
-    EXPECT_EQ(result, -1);
+    auto testFunc = []() -> int {
+        X_ASSERT_RETURN(false, -1);
+        return 0;
+    };
+    EXPECT_EQ(testFunc(), -1);
 }
+
 
 // Test xAssertReturn avec différentes valeurs
 TEST_F(AssertTest, AssertReturnValues) {
