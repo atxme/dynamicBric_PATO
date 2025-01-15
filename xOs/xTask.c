@@ -7,56 +7,53 @@
 ////////////////////////////////////////////////////////////
 
 #include "xTask.h"
+#include <pthread.h>
 
 //////////////////////////////////////////////////////////////
 /// osTaskCreate
 //////////////////////////////////////////////////////////////
-int osTaskCreate(os_task_t* p_pttOSTask)
-{
-	//check the task pointer
-	X_ASSERT(p_pttOSTask != NULL);
+int osTaskCreate(os_task_t* p_pttOSTask) {
+    // Vérifications préliminaires sans X_ASSERT
+    if (p_pttOSTask == NULL || p_pttOSTask->task == NULL || 
+        p_pttOSTask->stack_size <= 0) {
+        return OS_TASK_ERROR;
+    }
 
-	//convert to loccal structure
-	os_task_t tOSTask = *p_pttOSTask;
+    // Vérification de la priorité séparément pour éviter le segfault
+    if (p_pttOSTask->priority < OS_TASK_LOWEST_PRIORITY || 
+        p_pttOSTask->priority > OS_TASK_HIGHEST_PRIORITY) {
+        return OS_TASK_ERROR;
+    }
 
-	//check the task function pointer 
-	// we check only the parameters that are mandatory others will be custom by the function 
-	X_ASSERT(tOSTask.task != NULL);
-	X_ASSERT(tOSTask.priority >= OS_TASK_LOWEST_PRIORITY && tOSTask.priority <= OS_TASK_HIGHEST_PRIORITY);
-	X_ASSERT(tOSTask.stack_size > 0);
-	
-	//create the task
-#ifdef _WIN32
-	tOSTask.handle = CreateThread(NULL, tOSTask.stack_size, tOSTask.task, tOSTask.arg, 0, NULL);
-	tOSTask.id = GetThreadId(tOSTask.handle);
-#else
-	pthread_attr_t l_tAttr;
-	pthread_attr_init(&l_tAttr);
-	pthread_attr_setstacksize(&l_tAttr, tOSTask.stack_size);
-	pthread_create(&tOSTask.handle, &l_tAttr, tOSTask.task, tOSTask.arg);
-	pthread_attr_destroy(&l_tAttr);
-#endif
-	//check the task creation
-	if (tOSTask.handle == 0)
-	{
-		return OS_TASK_ERROR;
-	}
+    pthread_attr_t l_tAttr;
+    if (pthread_attr_init(&l_tAttr) != 0) {
+        return OS_TASK_ERROR;
+    }
 
-	//set the task status
-	tOSTask.status = OS_TASK_STATUS_READY;
+    // Configuration du thread
+    pthread_attr_setdetachstate(&l_tAttr, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setstacksize(&l_tAttr, p_pttOSTask->stack_size);
 
-	//set the task id
-	tOSTask.id = tOSTask.handle;
+    // Création du thread
+    int l_iReturn = pthread_create(&p_pttOSTask->handle, &l_tAttr, 
+                                 p_pttOSTask->task, p_pttOSTask->arg);
+    
+    pthread_attr_destroy(&l_tAttr);
 
-	//set the task exit code
-	tOSTask.exit_code = OS_TASK_EXIT_SUCCESS;
+    if (l_iReturn != 0) {
+        return OS_TASK_ERROR;
+    }
 
-	//set the task pointer
-	*p_pttOSTask = tOSTask;
+    p_pttOSTask->status = OS_TASK_STATUS_READY;
+    p_pttOSTask->id = (uintptr_t)p_pttOSTask->handle;
+    p_pttOSTask->exit_code = OS_TASK_EXIT_SUCCESS;
 
-	return OS_TASK_SUCCESS;
-
+    return OS_TASK_SUCCESS;
 }
+
+
+
+
 
 #ifdef _WIN32
 //////////////////////////////////////////////////////////////

@@ -45,6 +45,8 @@ void SetUp() override {
 // Test de création de tâche basique
 TEST_F(TaskTest, BasicTaskCreation) {
     task.task = TestTaskFunction;  // Définir une fonction de test valide
+    task.priority = OS_TASK_DEFAULT_PRIORITY;
+    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
     int testValue = 0;
     task.arg = &testValue;
     
@@ -55,11 +57,18 @@ TEST_F(TaskTest, BasicTaskCreation) {
     if (task.status != OS_TASK_STATUS_TERMINATED) {
         osTaskEnd(&task);
     }
+
+    // destruction du thread
+    pthread_join(task.handle, NULL);
 }
+
+/*
 
 // Test avec priorités invalides
 TEST_F(TaskTest, InvalidPriority) {
+    memset(&task, 0, sizeof(os_task_t));
     task.task = TestTaskFunction;
+    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
     
     // Test priorité trop haute
     task.priority = OS_TASK_HIGHEST_PRIORITY + 1;
@@ -68,6 +77,21 @@ TEST_F(TaskTest, InvalidPriority) {
     // Test priorité négative
     task.priority = -1;
     EXPECT_DEATH(osTaskCreate(&task), ".*");
+}
+*/
+
+TEST_F(TaskTest, InvalidPriority) {
+    memset(&task, 0, sizeof(os_task_t));
+    task.task = TestTaskFunction;
+    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
+    
+    // Test priorité trop haute
+    task.priority = OS_TASK_HIGHEST_PRIORITY + 1;
+    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
+    
+    // Test priorité négative
+    task.priority = -1;
+    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
 }
 
 

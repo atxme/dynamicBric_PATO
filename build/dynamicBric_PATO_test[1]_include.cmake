@@ -1,5 +1,0 @@
-if(EXISTS "/mnt/c/Users/Christophe/source/repos/atxme/dynamicBric_PATO/build/dynamicBric_PATO_test[1]_tests.cmake")
-  include("/mnt/c/Users/Christophe/source/repos/atxme/dynamicBric_PATO/build/dynamicBric_PATO_test[1]_tests.cmake")
-else()
-  add_test(dynamicBric_PATO_test_NOT_BUILT dynamicBric_PATO_test_NOT_BUILT)
-endif()

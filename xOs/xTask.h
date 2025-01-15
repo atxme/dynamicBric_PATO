@@ -36,12 +36,18 @@
 #define OS_TASK_EXIT_SUCCESS 0UL
 #define OS_TASK_EXIT_FAILURE -1UL
 
-
+#ifndef _WIN32
+#include <sched.h>
+#define OS_TASK_LOWEST_PRIORITY sched_get_priority_min(SCHED_RR)
+#define OS_TASK_HIGHEST_PRIORITY sched_get_priority_max(SCHED_RR)
+#define OS_TASK_DEFAULT_PRIORITY ((OS_TASK_HIGHEST_PRIORITY + OS_TASK_LOWEST_PRIORITY) / 2)
+#else
 #define OS_TASK_LOWEST_PRIORITY 0x0
 #define OS_TASK_HIGHEST_PRIORITY 0x31
-
-#define OS_TASK_DEFAULT_STACK_SIZE 0x1000
 #define OS_TASK_DEFAULT_PRIORITY 0x15
+#endif
+
+#define OS_TASK_DEFAULT_STACK_SIZE (8 * 1024 * 1024)  // 8 MB
 
 
 //////////////////////////////////
@@ -60,7 +66,7 @@ typedef struct {
     void* (*task)(void*);   // Pointeur vers la fonction de la t�che
     void* arg;              // Arguments de la t�che
     int priority;           // Priorit� de la t�che (OS-specific)
-    int stack_size;         // Taille de la pile (OS-specific)
+    size_t stack_size;         // Taille de la pile (OS-specific)
     int id;                 // ID de la t�che
     int status;             // Statut de la t�che
     int exit_code;          // Code de sortie de la t�che
