@@ -12,35 +12,39 @@
 //////////////////////////////////////////////////////////////
 /// osTaskCreate
 //////////////////////////////////////////////////////////////
-int osTaskCreate(os_task_t* p_pttOSTask) {
-    // Vérifications préliminaires sans X_ASSERT
-    if (p_pttOSTask == NULL || p_pttOSTask->task == NULL || 
-        p_pttOSTask->stack_size <= 0) {
-        return OS_TASK_ERROR;
-    }
+int osTaskCreate(os_task_t* p_pttOSTask) 
+{
 
-    // Vérification de la priorité séparément pour éviter le segfault
-    if (p_pttOSTask->priority < OS_TASK_LOWEST_PRIORITY || 
-        p_pttOSTask->priority > OS_TASK_HIGHEST_PRIORITY) {
-        return OS_TASK_ERROR;
-    }
+	X_ASSERT(p_pttOSTask != NULL);
+	X_ASSERT(p_pttOSTask->task != NULL);
+	X_ASSERT(p_pttOSTask->stack_size > 0);
+	X_ASSERT(p_pttOSTask->priority >= OS_TASK_LOWEST_PRIORITY && p_pttOSTask->priority <= OS_TASK_HIGHEST_PRIORITY);
 
     pthread_attr_t l_tAttr;
+    struct sched_param l_tSchedParam;
+    
     if (pthread_attr_init(&l_tAttr) != 0) {
         return OS_TASK_ERROR;
     }
 
-    // Configuration du thread
+    // Configuration des attributs du thread
     pthread_attr_setdetachstate(&l_tAttr, PTHREAD_CREATE_JOINABLE);
     pthread_attr_setstacksize(&l_tAttr, p_pttOSTask->stack_size);
+    
+    // Configuration de la politique d'ordonnancement
+    pthread_attr_setschedpolicy(&l_tAttr, SCHED_FIFO);
+    
+    l_tSchedParam.sched_priority = p_pttOSTask->priority;
+    pthread_attr_setschedparam(&l_tAttr, &l_tSchedParam);
 
     // Création du thread
-    int l_iReturn = pthread_create(&p_pttOSTask->handle, &l_tAttr, 
+    int l_iReturn = pthread_create(&p_pttOSTask->handle, &l_tAttr,
                                  p_pttOSTask->task, p_pttOSTask->arg);
     
     pthread_attr_destroy(&l_tAttr);
 
-    if (l_iReturn != 0) {
+    if (l_iReturn != 0) 
+	{
         return OS_TASK_ERROR;
     }
 
@@ -50,9 +54,6 @@ int osTaskCreate(os_task_t* p_pttOSTask) {
 
     return OS_TASK_SUCCESS;
 }
-
-
-
 
 
 #ifdef _WIN32
@@ -258,11 +259,13 @@ int osTaskGetExitCode(os_task_t* p_pttOSTask)
 	tOSTask.exit_code = l_dwExitCode;
 #else
 	//get the task exit code
-	pthread_join(tOSTask.handle, (void*)&tOSTask.exit_code);
-#endif
+	void *threadResult = NULL;
+	pthread_join(tOSTask.handle, &threadResult);
+	tOSTask.exit_code = (int)(intptr_t)threadResult;
 
+#endif
 	//set the task pointer
-	* p_pttOSTask = tOSTask;
+	*p_pttOSTask = tOSTask;
 
 	return tOSTask.exit_code;
 }
