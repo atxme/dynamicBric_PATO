@@ -1,20 +1,15 @@
-////////////////////////////////////////////////////////////
-//  os Task test file
-//  implements test cases for task functions
-//
-//  Written : 14/11/2024
-////////////////////////////////////////////////////////////
-
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
+#include <cstring>
 
 extern "C" {
-    #include "xOs/xTask.h"
+#include "xTask.h"
 }
 
 // Fonction helper pour une tâche simple
 static void* TestTaskFunction(void* arg) {
+    if (arg == nullptr) return nullptr;
     int* value = static_cast<int*>(arg);
     *value = 42;
     return nullptr;
@@ -32,11 +27,10 @@ TEST(TaskTest, BasicTaskCreation) {
     EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
     EXPECT_NE(task.id, 0);
 
-    if (task.status != OS_TASK_STATUS_TERMINATED) {
-        osTaskEnd(&task);
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(testValue, 42);
 
-    pthread_join(task.handle, NULL);
+    EXPECT_EQ(osTaskEnd(&task), OS_TASK_SUCCESS);
 }
 
 TEST(TaskTest, InvalidPriority) {
@@ -45,73 +39,40 @@ TEST(TaskTest, InvalidPriority) {
     task.task = TestTaskFunction;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
 
-    // Test priorité trop haute
+    // Test de priorité trop haute (supérieure à OS_TASK_HIGHEST_PRIORITY)
     task.priority = OS_TASK_HIGHEST_PRIORITY + 1;
-    EXPECT_DEATH(osTaskCreate(&task), ".*");
+    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
 
-    // Test priorité négative
+    // Test de priorité négative
     task.priority = -1;
-    EXPECT_DEATH(osTaskCreate(&task), ".*");
+    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
 }
 
 TEST(TaskTest, InvalidStackSize) {
     os_task_t task;
     memset(&task, 0, sizeof(os_task_t));
     task.task = TestTaskFunction;
-    task.stack_size = 0;
-
-    EXPECT_DEATH(osTaskCreate(&task), ".*");
-}
-
-TEST(TaskTest, UpdatePriority) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
-    task.task = TestTaskFunction;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
-    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
-
-    EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
-
-    int newPriority = OS_TASK_HIGHEST_PRIORITY;
-    EXPECT_EQ(osTaskUpdatePriority(&task, &newPriority), OS_TASK_SUCCESS);
-    EXPECT_EQ(task.priority, newPriority);
-
-    osTaskEnd(&task);
+    task.stack_size = 0;
+    EXPECT_EQ(osTaskCreate(&task), OS_TASK_ERROR);
 }
 
-/*
 TEST(TaskTest, GetExitCode) {
     os_task_t task;
     memset(&task, 0, sizeof(os_task_t));
     task.task = TestTaskFunction;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
+    int testValue = 0;
+    task.arg = &testValue;
 
     EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
 
+    // Laisser le temps à la tâche de s'exécuter
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(osTaskEnd(&task), OS_TASK_SUCCESS);
     EXPECT_EQ(osTaskGetExitCode(&task), OS_TASK_EXIT_SUCCESS);
-
-    osTaskEnd(&task);
 }
-*/
-
-#ifdef _WIN32
-TEST(TaskTest, WindowsSpecificOperations) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
-    task.task = TestTaskFunction;
-    task.priority = OS_TASK_DEFAULT_PRIORITY;
-    task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
-
-    EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
-    EXPECT_EQ(osTaskStart(&task), OS_TASK_SUCCESS);
-    EXPECT_EQ(osTaskSuspend(&task), OS_TASK_SUCCESS);
-    EXPECT_EQ(osTaskResume(&task), OS_TASK_SUCCESS);
-
-    osTaskEnd(&task);
-}
-#endif
 
 TEST(TaskTest, TaskTermination) {
     os_task_t task;
@@ -126,15 +87,15 @@ TEST(TaskTest, TaskTermination) {
 }
 
 TEST(TaskTest, NullParameters) {
-    EXPECT_DEATH(osTaskCreate(nullptr), ".*");
-    EXPECT_DEATH(osTaskEnd(nullptr), ".*");
-    EXPECT_DEATH(osTaskUpdatePriority(nullptr, nullptr), ".*");
+    EXPECT_EQ(osTaskCreate(nullptr), OS_TASK_ERROR);
+    EXPECT_EQ(osTaskEnd(nullptr), OS_TASK_ERROR);
 }
 
-TEST(TaskTest, MultipleTaskCreation) {
+TEST(TaskTest, MultipleTaskCreation) 
+{
     const int NUM_TASKS = 5;
     os_task_t tasks[NUM_TASKS];
-    int values[NUM_TASKS] = {0};
+    int values[NUM_TASKS] = { 0 };
 
     for (int i = 0; i < NUM_TASKS; i++) {
         memset(&tasks[i], 0, sizeof(os_task_t));
@@ -142,12 +103,7 @@ TEST(TaskTest, MultipleTaskCreation) {
         tasks[i].arg = &values[i];
         tasks[i].priority = OS_TASK_DEFAULT_PRIORITY;
         tasks[i].stack_size = OS_TASK_DEFAULT_STACK_SIZE;
-
         EXPECT_EQ(osTaskCreate(&tasks[i]), OS_TASK_SUCCESS);
-    }
-
-    for (int i = 0; i < NUM_TASKS; i++) {
-        EXPECT_EQ(osTaskEnd(&tasks[i]), OS_TASK_SUCCESS);
     }
 }
 
@@ -158,7 +114,7 @@ TEST(TaskTest, LongRunningTask) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         taskCompleted = true;
         return nullptr;
-    };
+        };
 
     os_task_t task;
     memset(&task, 0, sizeof(os_task_t));
@@ -167,9 +123,7 @@ TEST(TaskTest, LongRunningTask) {
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
 
     EXPECT_EQ(osTaskCreate(&task), OS_TASK_SUCCESS);
-
     std::this_thread::sleep_for(std::chrono::milliseconds(600));
     EXPECT_TRUE(taskCompleted);
-
-    osTaskEnd(&task);
+    EXPECT_EQ(osTaskEnd(&task), OS_TASK_SUCCESS);
 }

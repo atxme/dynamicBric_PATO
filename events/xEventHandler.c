@@ -21,12 +21,13 @@ static xos_mutex_t s_tHandlerMutex;
 static const uint32_t EVENT_CALLBACK_TIMEOUT_MS = 1000;
 
 //////////////////////////////////
-// Static function declarations
+///@brief Static function declarations
+///@param p_ptEvent : structure event pointer
 //////////////////////////////////
 static int validateEvent(const xos_event_t* p_ptEvent);
 
 //////////////////////////////////
-// Public functions implementation
+// xEventHandlerInit
 //////////////////////////////////
 int xEventHandlerInit(void)
 {
@@ -34,14 +35,14 @@ int xEventHandlerInit(void)
 
     X_ASSERT(s_bInitialized == false);
 
-    // Create mutex
+    // Création du mutex
     l_iRet = mutexCreate(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Lock mutex
+    // Verrouillage du mutex
     l_iRet = mutexLock(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
@@ -49,25 +50,27 @@ int xEventHandlerInit(void)
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Initialize subscribers array
+    // Initialisation du tableau des abonnés
     memset(s_tSubscribers, 0, sizeof(s_tSubscribers));
     s_bInitialized = true;
 
-    // Unlock mutex
+    // Déverrouillage du mutex
     mutexUnlock(&s_tHandlerMutex);
-    
     return XOS_EVENT_HANDLER_OK;
 }
 
+//////////////////////////////////
+// xEventHandlerSubscribe
+//////////////////////////////////
 int xEventHandlerSubscribe(uint32_t p_ulEventId,
-    xos_event_callback_t p_pfCallback,
-    void* p_ptArg,
-    uint8_t p_ucFlags)
+                           xos_event_callback_t p_pfCallback,
+                           void* p_ptArg,
+                           uint8_t p_ucFlags)
 {
     int l_iRet;
     int l_iIndex = -1;
 
-    // Validate parameters
+	// Check parameters
     X_ASSERT(p_pfCallback != NULL);
 
     // Lock mutex
@@ -77,14 +80,14 @@ int xEventHandlerSubscribe(uint32_t p_ulEventId,
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Check initialization
+	// Check initialization
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tHandlerMutex);
         return XOS_EVENT_HANDLER_NOT_INIT;
     }
 
-    // Check if already subscribed
+	// Check if subscriber already exists
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         if (s_tSubscribers[i].t_bActive &&
@@ -96,7 +99,7 @@ int xEventHandlerSubscribe(uint32_t p_ulEventId,
         }
     }
 
-    // Find free slot
+	// Find free subscriber slot
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         if (!s_tSubscribers[i].t_bActive)
@@ -112,7 +115,7 @@ int xEventHandlerSubscribe(uint32_t p_ulEventId,
         return XOS_EVENT_HANDLER_FULL;
     }
 
-    // Initialize subscriber
+	// Init subscriber
     s_tSubscribers[l_iIndex].t_ulEventId = p_ulEventId;
     s_tSubscribers[l_iIndex].t_pfCallback = p_pfCallback;
     s_tSubscribers[l_iIndex].t_ptArg = p_ptArg;
@@ -122,46 +125,50 @@ int xEventHandlerSubscribe(uint32_t p_ulEventId,
 
     mutexUnlock(&s_tHandlerMutex);
     return XOS_EVENT_HANDLER_OK;
+
 }
 
+//////////////////////////////////
+// xEventHandlerUnsubscribe
+//////////////////////////////////
 int xEventHandlerUnsubscribe(uint32_t p_ulEventId,
     xos_event_callback_t p_pfCallback)
 {
     int l_iRet;
     bool l_bFound = false;
 
-    // Validate parameters
+    // Validation du paramètre callback
     X_ASSERT(p_pfCallback != NULL);
 
-    // Lock mutex
+    // Verrouillage du mutex
     l_iRet = mutexLock(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Check initialization
+    // Vérification de l'initialisation
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tHandlerMutex);
         return XOS_EVENT_HANDLER_NOT_INIT;
     }
 
-    // Find and remove subscriber
+    // Recherche et suppression de l'abonné
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         if (s_tSubscribers[i].t_bActive &&
             s_tSubscribers[i].t_ulEventId == p_ulEventId &&
             s_tSubscribers[i].t_pfCallback == p_pfCallback)
         {
-            // Wait for pending callbacks
+            // Attente que les callbacks en cours se terminent
             while (s_tSubscribers[i].t_ulRefCount > 0)
             {
                 mutexUnlock(&s_tHandlerMutex);
                 xTimerDelay(1);
                 mutexLock(&s_tHandlerMutex);
             }
-            
+
             memset(&s_tSubscribers[i], 0, sizeof(xos_event_subscriber_t));
             l_bFound = true;
             break;
@@ -172,31 +179,35 @@ int xEventHandlerUnsubscribe(uint32_t p_ulEventId,
     return l_bFound ? XOS_EVENT_HANDLER_OK : XOS_EVENT_HANDLER_NOT_FOUND;
 }
 
+//////////////////////////////////
+// xEventHandlerProcess
+//////////////////////////////////
 int xEventHandlerProcess(xos_event_t* p_ptEvent)
 {
     int l_iRet;
     xos_event_subscriber_t l_tLocalSubscribers[XOS_EVENT_HANDLER_MAX_SUBSCRIBERS];
     uint32_t l_ulActiveCount = 0;
     uint32_t l_ulStartTime;
+    bool l_bTimeoutOccured = false;
 
-    // Validate parameters
+    // Validation du paramètre event
     X_ASSERT(p_ptEvent != NULL);
-    
-    // Lock mutex
+
+    // Verrouillage du mutex
     l_iRet = mutexLock(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Check initialization
+    // Vérification de l'initialisation
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tHandlerMutex);
         return XOS_EVENT_HANDLER_NOT_INIT;
     }
 
-    // Validate event
+    // Validation de l'événement
     l_iRet = validateEvent(p_ptEvent);
     if (l_iRet != XOS_EVENT_HANDLER_OK)
     {
@@ -204,91 +215,100 @@ int xEventHandlerProcess(xos_event_t* p_ptEvent)
         return l_iRet;
     }
 
-    // Copy active subscribers
+    // Copie des abonnés actifs correspondant à l'événement et incrément du compteur de référence
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         if (s_tSubscribers[i].t_bActive &&
             s_tSubscribers[i].t_ulEventId == p_ptEvent->t_ulEventId)
         {
             s_tSubscribers[i].t_ulRefCount++;
-            memcpy(&l_tLocalSubscribers[l_ulActiveCount], 
-                   &s_tSubscribers[i], 
-                   sizeof(xos_event_subscriber_t));
+            memcpy(&l_tLocalSubscribers[l_ulActiveCount],
+                &s_tSubscribers[i],
+                sizeof(xos_event_subscriber_t));
             l_ulActiveCount++;
         }
     }
 
     mutexUnlock(&s_tHandlerMutex);
 
-    // Execute callbacks
+    // Exécution des callbacks
     for (uint32_t i = 0; i < l_ulActiveCount; i++)
     {
         if (l_tLocalSubscribers[i].t_pfCallback != NULL)
         {
             l_ulStartTime = xTimerGetCurrentMs();
-            
-            l_tLocalSubscribers[i].t_pfCallback(p_ptEvent, 
-                l_tLocalSubscribers[i].t_ptArg);
-            
-            if ((xTimerGetCurrentMs() - l_ulStartTime) > EVENT_CALLBACK_TIMEOUT_MS)
+
+            // Appel de la fonction callback
+            l_tLocalSubscribers[i].t_pfCallback(p_ptEvent, l_tLocalSubscribers[i].t_ptArg);
+
+            // Calcul du temps d'exécution
+            uint32_t execTime = xTimerGetCurrentMs() - l_ulStartTime;
+
+            // Toujours décrémenter le compteur de référence,
+            // même en cas de dépassement (timeout)
+            mutexLock(&s_tHandlerMutex);
+            for (uint32_t j = 0; j < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; j++)
             {
-                return XOS_EVENT_HANDLER_TIMEOUT;
+                if (s_tSubscribers[j].t_ulEventId == l_tLocalSubscribers[i].t_ulEventId &&
+                    s_tSubscribers[j].t_pfCallback == l_tLocalSubscribers[i].t_pfCallback)
+                {
+                    s_tSubscribers[j].t_ulRefCount--;
+                    break;
+                }
+            }
+            mutexUnlock(&s_tHandlerMutex);
+
+            // Si la durée du callback dépasse le délai imparti, on note l'erreur
+            if (execTime > EVENT_CALLBACK_TIMEOUT_MS)
+            {
+                l_bTimeoutOccured = true;
             }
         }
-        
-        // Decrease reference counter
-        mutexLock(&s_tHandlerMutex);
-        for (uint32_t j = 0; j < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; j++)
-        {
-            if (s_tSubscribers[j].t_ulEventId == l_tLocalSubscribers[i].t_ulEventId &&
-                s_tSubscribers[j].t_pfCallback == l_tLocalSubscribers[i].t_pfCallback)
-            {
-                s_tSubscribers[j].t_ulRefCount--;
-                break;
-            }
-        }
-        mutexUnlock(&s_tHandlerMutex);
     }
 
-    return XOS_EVENT_HANDLER_OK;
+    return l_bTimeoutOccured ? XOS_EVENT_HANDLER_TIMEOUT : XOS_EVENT_HANDLER_OK;
 }
 
+//////////////////////////////////
+// xEventHandlerCleanup
+//////////////////////////////////
 int xEventHandlerCleanup(void)
 {
     int l_iRet;
 
-    // Lock mutex
+    // Verrouillage du mutex
     l_iRet = mutexLock(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_EVENT_HANDLER_ERROR;
     }
 
-    // Check initialization
+    // Vérification de l'initialisation
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tHandlerMutex);
         return XOS_EVENT_HANDLER_NOT_INIT;
     }
 
-    // Wait for all callbacks to complete
+    // Attente que tous les callbacks en cours soient terminés
     for (uint32_t i = 0; i < XOS_EVENT_HANDLER_MAX_SUBSCRIBERS; i++)
     {
         while (s_tSubscribers[i].t_ulRefCount > 0)
         {
             mutexUnlock(&s_tHandlerMutex);
-            xTimerDelay(1);
+			xTimerDelay(1); /// TODO : remplacer par une attente active
             mutexLock(&s_tHandlerMutex);
         }
     }
 
-    // Clear subscribers
+    // Réinitialisation des abonnés
     memset(s_tSubscribers, 0, sizeof(s_tSubscribers));
     s_bInitialized = false;
 
+    // Déverrouillage du mutex avant destruction
     mutexUnlock(&s_tHandlerMutex);
-    
-    // Destroy mutex
+
+    // Destruction du mutex
     l_iRet = mutexDestroy(&s_tHandlerMutex);
     if (l_iRet != MUTEX_OK)
     {
@@ -299,15 +319,17 @@ int xEventHandlerCleanup(void)
 }
 
 //////////////////////////////////
-// Static functions implementation
+// validateEvent
 //////////////////////////////////
 static int validateEvent(const xos_event_t* p_ptEvent)
 {
+    // Vérification de la taille des données et du pointeur associé
     if (p_ptEvent->t_ulDataSize > 0 && p_ptEvent->t_ptData == NULL)
     {
         return XOS_EVENT_HANDLER_INVALID;
     }
 
+    // Vérification du type d'événement et de sa priorité
     if (p_ptEvent->t_eType > XOS_EVENT_TYPE_IO ||
         p_ptEvent->t_tPrio > XOS_EVENT_PRIORITY_SYSTEM)
     {
@@ -316,3 +338,4 @@ static int validateEvent(const xos_event_t* p_ptEvent)
 
     return XOS_EVENT_HANDLER_OK;
 }
+

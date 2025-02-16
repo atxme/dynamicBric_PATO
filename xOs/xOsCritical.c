@@ -29,34 +29,12 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 /// osCriticalLock
 ////////////////////////////////////////////////////////////
-int osCriticalLock(os_critical_t* p_pttOSCritical)
+int osCriticalLock(os_critical_t* p_pttOSCritical) 
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
-    if (p_pttOSCritical->ulTimeout == 0) {
-        if (pthread_mutex_lock(&p_pttOSCritical->critical) != 0) {
-            return OS_CRITICAL_ERROR;
-        }
-    }
-    else {
-        struct timespec ts;
-        if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-        {
-            return OS_CRITICAL_ERROR;
-        }
-
-        uint64_t nsec = (uint64_t)ts.tv_nsec + 
-                       (uint64_t)(p_pttOSCritical->ulTimeout % 1000) * 1000000ULL;
-        ts.tv_sec += p_pttOSCritical->ulTimeout / 1000 + (nsec / 1000000000ULL);
-        ts.tv_nsec = nsec % 1000000000ULL;
-
-        int result = pthread_mutex_timedlock(&p_pttOSCritical->critical, &ts);
-        if (result == ETIMEDOUT) {
-            return -2;
-        }
-        else if (result != 0) {
-            return OS_CRITICAL_ERROR;
-        }
+    if (pthread_mutex_lock(&p_pttOSCritical->critical) != 0) {
+        return OS_CRITICAL_ERROR;
     }
 
     p_pttOSCritical->iLock = OS_CRITICAL_LOCKED;
@@ -64,12 +42,41 @@ int osCriticalLock(os_critical_t* p_pttOSCritical)
 }
 
 ////////////////////////////////////////////////////////////
+/// osCriticalLockTimeout
+////////////////////////////////////////////////////////////
+int osCriticalLockWithTimeout(os_critical_t* p_pttOSCritical)
+{
+    X_ASSERT(p_pttOSCritical != NULL);
+	X_ASSERT(p_pttOSCritical->ulTimeout != OS_CRITICAL_DEFAULT_TIMEOUT);    // Timeout must be set
+
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        return OS_CRITICAL_ERROR;
+    }
+
+    uint64_t nsec = (uint64_t)ts.tv_nsec + (uint64_t)(p_pttOSCritical->ulTimeout % 1000) * 1000000ULL;
+    ts.tv_sec += p_pttOSCritical->ulTimeout / 1000 + (nsec / 1000000000ULL);
+    ts.tv_nsec = nsec % 1000000000ULL;
+
+    int result = pthread_mutex_timedlock(&p_pttOSCritical->critical, &ts);
+    if (result == ETIMEDOUT) {
+        return OS_CRITICAL_TIMEOUT;
+    }
+    else if (result != 0) {
+        return OS_CRITICAL_ERROR;
+    }
+
+    p_pttOSCritical->iLock = OS_CRITICAL_LOCKED;
+    return OS_CRITICAL_SUCCESS;
+}
+
+
+////////////////////////////////////////////////////////////
 /// osCriticalUnlock
 ////////////////////////////////////////////////////////////
 int osCriticalUnlock(os_critical_t* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
-    X_ASSERT(p_pttOSCritical->iLock == OS_CRITICAL_LOCKED);
 
     if (pthread_mutex_unlock(&p_pttOSCritical->critical) != 0) {
         return OS_CRITICAL_ERROR;

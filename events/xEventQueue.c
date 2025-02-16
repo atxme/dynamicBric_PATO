@@ -32,7 +32,7 @@ int xEventQueuePush(xos_event_queue_t* p_ptQueue, xos_event_t* p_ptEvent)
         return XOS_EVENT_QUEUE_FULL;
     }
 
-    // Copier l'événement dans la file
+    /* Copier l’événement dans la file */
     memcpy(&p_ptQueue->t_tEvents[p_ptQueue->t_ulTail],
         p_ptEvent,
         sizeof(xos_event_t));
@@ -41,6 +41,7 @@ int xEventQueuePush(xos_event_queue_t* p_ptQueue, xos_event_t* p_ptEvent)
     p_ptQueue->t_ulCount++;
 
     return XOS_EVENT_QUEUE_OK;
+
 }
 
 int xEventQueuePop(xos_event_queue_t* p_ptQueue, xos_event_t* p_ptEvent)
@@ -54,7 +55,6 @@ int xEventQueuePop(xos_event_queue_t* p_ptQueue, xos_event_t* p_ptEvent)
         return XOS_EVENT_QUEUE_EMPTY;
     }
 
-    // Récupérer l'événement de la file
     memcpy(p_ptEvent,
         &p_ptQueue->t_tEvents[p_ptQueue->t_ulHead],
         sizeof(xos_event_t));

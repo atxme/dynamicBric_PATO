@@ -23,7 +23,7 @@ protected:
     
     // Helper pour créer un événement de test
     xos_event_t createTestEvent(uint32_t id) {
-        xos_event_t event = {0};
+        xos_event_t event;
         event.t_ulEventId = id;
         event.t_eType = XOS_EVENT_TYPE_USER;
         event.t_tPrio = XOS_EVENT_PRIORITY_MEDIUM;
@@ -158,43 +158,66 @@ TEST_F(EventQueueTest, CircularBehavior) {
 TEST_F(EventQueueTest, ConcurrentAccess) {
     const int NUM_PRODUCERS = 5;
     const int NUM_EVENTS_PER_PRODUCER = 100;
+    const int TIMEOUT_MS = 1000;
     std::atomic<int> totalPushed(0);
     std::atomic<int> totalPopped(0);
-    
+    std::atomic<bool> shouldStop(false);
+
     // Producteurs
     auto producer = [&](int id) {
-        for(int i = 0; i < NUM_EVENTS_PER_PRODUCER; i++) {
+        for (int i = 0; i < NUM_EVENTS_PER_PRODUCER && !shouldStop; i++) {
             xos_event_t event = createTestEvent(id * 1000 + i);
-            if(xEventQueuePush(&queue, &event) == XOS_EVENT_QUEUE_OK) {
+            if (xEventQueuePush(&queue, &event) == XOS_EVENT_QUEUE_OK) {
                 totalPushed++;
             }
+            std::this_thread::yield();
         }
-    };
-    
+        };
+
     // Consommateur
     auto consumer = [&]() {
         xos_event_t event;
-        while(totalPopped < totalPushed || totalPushed < NUM_PRODUCERS * NUM_EVENTS_PER_PRODUCER) {
-            if(xEventQueuePop(&queue, &event) == XOS_EVENT_QUEUE_OK) {
+        auto start = std::chrono::steady_clock::now();
+
+        while (!shouldStop) {
+            // Vérification du timeout
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
+                (std::chrono::steady_clock::now() - start).count();
+            if (elapsed > TIMEOUT_MS) {
+                shouldStop = true;
+                break;
+            }
+
+            // Vérification de la condition de fin
+            if (totalPopped >= NUM_PRODUCERS * NUM_EVENTS_PER_PRODUCER) {
+                break;
+            }
+
+            if (xEventQueuePop(&queue, &event) == XOS_EVENT_QUEUE_OK) {
                 totalPopped++;
             }
             std::this_thread::yield();
         }
-    };
-    
+        };
+
     // Démarrer les threads
     std::vector<std::thread> producers;
-    for(int i = 0; i < NUM_PRODUCERS; i++) {
+    for (int i = 0; i < NUM_PRODUCERS; i++) {
         producers.emplace_back(producer, i);
     }
     std::thread consumerThread(consumer);
-    
+
     // Attendre la fin
-    for(auto& t : producers) {
+    for (auto& t : producers) {
         t.join();
     }
     consumerThread.join();
-    
-    // Vérifier les résultats
-    EXPECT_EQ(totalPushed, totalPopped);
+
+    // Vérifications finales
+    EXPECT_FALSE(shouldStop) << "Test timeout après " << TIMEOUT_MS << "ms";
+    EXPECT_EQ(totalPushed, NUM_PRODUCERS * NUM_EVENTS_PER_PRODUCER)
+        << "Nombre incorrect d'événements publiés";
+    EXPECT_EQ(totalPopped, totalPushed)
+        << "Nombre d'événements consommés différent du nombre publié";
 }
+

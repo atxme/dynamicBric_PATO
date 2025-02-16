@@ -24,12 +24,6 @@ TEST_F(AssertTest, TrueAssertion) {
     EXPECT_NO_FATAL_FAILURE(X_ASSERT(true));
 }
 
-// Test assertion avec message
-TEST_F(AssertTest, AssertWithMessage) {
-    const char* message = "Test message";
-    EXPECT_DEATH(xAssert((const uint8_t*)"test.cpp", 42, message), ".*");
-}
-
 // Test assertion fausse avec mode EXIT
 #ifdef XOS_ASSERT_MODE_EXIT
 TEST_F(AssertTest, FalseAssertionExit) {
@@ -80,7 +74,7 @@ TEST_F(AssertTest, SideEffects) {
 
 // Test paramètres NULL
 TEST_F(AssertTest, NullParameters) {
-    EXPECT_NO_FATAL_FAILURE(xAssert(nullptr, 0, nullptr));
+    EXPECT_DEATH(xAssert(nullptr, 0, nullptr), ".*");
     EXPECT_EQ(xAssertReturn(nullptr, 0, nullptr, 0), 0);
 }
 

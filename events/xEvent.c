@@ -10,10 +10,11 @@
 #include "xAssert.h"
 #include "xOsHorodateur.h"
 #include <string.h>
+#include <stdio.h>
 
 // Static event queue
 static xos_event_t s_tEvents[XOS_EVENT_MAX_EVENTS];
-static uint32_t s_ulEventCount = 0;
+static uint32_t s_ulEventCount;
 static bool s_bInitialized = false;
 
 int xEventInit(void)
@@ -31,6 +32,7 @@ int xEventPublish(uint32_t p_ulEventId, xos_event_type_t p_eType,
     xos_event_priority_t p_tPrio, uint8_t p_ucFlags,
     void* p_ptData, size_t p_ulSize)
 {
+	printf("Initilized : %d\n", s_bInitialized);
     X_ASSERT(s_bInitialized == true);
     X_ASSERT(p_ulSize == 0 || p_ptData != NULL);
 

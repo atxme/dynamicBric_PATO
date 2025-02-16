@@ -53,16 +53,16 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     X_ASSERT(p_ptkcFile != NULL);
     X_ASSERT(p_ptkcFormat != NULL);
 
-    // Double-checked locking pattern
-    if (!s_bInitialized)
-    {
-        return XOS_LOG_NOT_INIT;
-    }
-
     int l_iRet = mutexLock(&s_tLogMutex);
     if (l_iRet != MUTEX_OK)
     {
         return XOS_LOG_ERROR;
+    }
+
+    // Double-checked locking pattern
+    if (!s_bInitialized)
+    {
+        return XOS_LOG_NOT_INIT;
     }
 
     // Vérifier à nouveau après avoir acquis le mutex

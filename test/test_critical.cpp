@@ -64,10 +64,10 @@ TEST_F(CriticalTest, Timeout) {
     EXPECT_EQ(osCriticalCreate(&critical), OS_CRITICAL_SUCCESS);
     critical.ulTimeout = 100; // 100ms timeout
     
-    EXPECT_EQ(osCriticalLock(&critical), OS_CRITICAL_SUCCESS);
+    EXPECT_EQ(osCriticalLockWithTimeout(&critical), OS_CRITICAL_SUCCESS);
     
     std::thread t([this]() {
-        EXPECT_EQ(osCriticalLock(&critical), OS_CRITICAL_TIMEOUT);
+        EXPECT_EQ(osCriticalLockWithTimeout(&critical), OS_CRITICAL_TIMEOUT);
     });
     
     t.join();

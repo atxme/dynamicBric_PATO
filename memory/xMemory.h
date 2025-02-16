@@ -30,7 +30,7 @@
 #define XOS_MEM_MAX_ALLOCATION 1024 * 1024 * 1024 // 1 GB
 
 // Memory block structure
-typedef struct xMemoryBlock
+typedef struct __attribute__((packed)) xMemoryBlock
 {
     unsigned long t_ulCanaryPrefix;  // Canary prefix for underflow detection
     void* t_ptAddress;              // Allocated address
