@@ -20,10 +20,10 @@
 
 // Mutex error codes
 #define MUTEX_OK              0
-#define MUTEX_ERROR         -1
-#define MUTEX_TIMEOUT      -2
-#define MUTEX_INVALID      -3
-#define MUTEX_ALREADY_INIT -4
+#define MUTEX_ERROR          -1
+#define MUTEX_TIMEOUT        -2
+#define MUTEX_INVALID        -3
+#define MUTEX_ALREADY_INIT   -4
 #define MUTEX_NOT_INIT     -5
 
 // Mutex states

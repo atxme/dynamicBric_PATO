@@ -9,27 +9,39 @@
 #include "xLog.h"
 #include "xAssert.h"
 #include "xOsHorodateur.h"
+#include "xOsMutex.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 
 static xos_log_config_t s_tLogConfig = { 0 };
 static bool s_bInitialized = false;
+static xos_mutex_t s_tLogMutex;
 
 int xLogInit(xos_log_config_t* p_ptConfig)
 {
     X_ASSERT(p_ptConfig != NULL);
 
+    int l_iRet = mutexCreate(&s_tLogMutex);
+    if (l_iRet != MUTEX_OK)
+    {
+        return XOS_LOG_ERROR;
+    }
+
     memcpy(&s_tLogConfig, p_ptConfig, sizeof(xos_log_config_t));
 
     if (s_tLogConfig.t_bLogToFile)
     {
+        mutexLock(&s_tLogMutex);
         FILE* l_ptFile = fopen(s_tLogConfig.t_cLogPath, "w");
         if (l_ptFile == NULL)
         {
+            mutexUnlock(&s_tLogMutex);
+            mutexDestroy(&s_tLogMutex);
             return XOS_LOG_ERROR;
         }
         fclose(l_ptFile);
+        mutexUnlock(&s_tLogMutex);
     }
 
     s_bInitialized = true;
@@ -41,59 +53,79 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     X_ASSERT(p_ptkcFile != NULL);
     X_ASSERT(p_ptkcFormat != NULL);
 
+    int l_iRet = mutexLock(&s_tLogMutex);
+    if (l_iRet != MUTEX_OK)
+    {
+        return XOS_LOG_ERROR;
+    }
+
+    // Double-checked locking pattern
     if (!s_bInitialized)
     {
         return XOS_LOG_NOT_INIT;
     }
 
-    // Format le message utilisateur
-    char l_cMessage[XOS_LOG_MSG_SIZE / 2];
-    va_list l_tArgs;
-    va_start(l_tArgs, p_ptkcFormat);
-    vsnprintf(l_cMessage, sizeof(l_cMessage), p_ptkcFormat, l_tArgs);
-    va_end(l_tArgs);
-
-    // Récupère l'horodatage
-    const char* l_ptcTimestamp = xHorodateurGet();
-    if (l_ptcTimestamp == NULL)
+    // VÃ©rifier Ã  nouveau aprÃ¨s avoir acquis le mutex
+    if (!s_bInitialized)
     {
-        return XOS_LOG_ERROR;
+        mutexUnlock(&s_tLogMutex);
+        return XOS_LOG_NOT_INIT;
     }
 
-    // Prépare le message final
-    char l_cFinalMessage[XOS_LOG_MSG_SIZE];
-    int l_iLen = snprintf(l_cFinalMessage, XOS_LOG_MSG_SIZE - 1,
-        "%s | %s : %u | %s\n",
-        l_ptcTimestamp, p_ptkcFile, p_ulLine, l_cMessage);
+    // Formater le message
+    va_list args;
+    va_start(args, p_ptkcFormat);
+    
+    char l_cBuffer[XOS_LOG_MSG_SIZE];
+    vsnprintf(l_cBuffer, sizeof(l_cBuffer), p_ptkcFormat, args);
+    
+    va_end(args);
 
-    if (l_iLen < 0 || l_iLen >= XOS_LOG_MSG_SIZE - 1)
-    {
-        return XOS_LOG_ERROR;
-    }
-
-    // Écrit sur la console si activé
+    // Ã‰crire le log dans le fichier
     if (s_tLogConfig.t_bLogToConsole)
     {
-        printf("%s", l_cFinalMessage);
+        printf("%s | %s:%d | %s\n", xHorodateurGetString(), p_ptkcFile, p_ulLine, l_cBuffer);
     }
 
-    // Écrit dans le fichier si activé
     if (s_tLogConfig.t_bLogToFile)
     {
         FILE* l_ptFile = fopen(s_tLogConfig.t_cLogPath, "a");
         if (l_ptFile == NULL)
         {
+            mutexUnlock(&s_tLogMutex);
             return XOS_LOG_ERROR;
         }
-        fprintf(l_ptFile, "%s", l_cFinalMessage);
+
+        fprintf(l_ptFile, "%s | %s:%d | %s\n", xHorodateurGetString(), p_ptkcFile, p_ulLine, l_cBuffer);
         fclose(l_ptFile);
     }
 
-    return XOS_LOG_OK;
+    mutexUnlock(&s_tLogMutex);
+    return l_iRet;
 }
 
 int xLogClose(void)
 {
-    s_bInitialized = false;
+    int l_iRet = mutexLock(&s_tLogMutex);
+    if (l_iRet != MUTEX_OK)
+    {
+        return XOS_LOG_ERROR;
+    }
+
+    if (s_bInitialized)
+    {
+        s_bInitialized = false;
+        mutexUnlock(&s_tLogMutex);
+        l_iRet = mutexDestroy(&s_tLogMutex);
+        if (l_iRet != MUTEX_OK)
+        {
+            return XOS_LOG_ERROR;
+        }
+    }
+    else
+    {
+        mutexUnlock(&s_tLogMutex);
+    }
+
     return XOS_LOG_OK;
 }

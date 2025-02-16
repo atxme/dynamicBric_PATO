@@ -15,7 +15,7 @@
 
 static char s_cTimeBuffer[XOS_HORODATEUR_BUFFER_SIZE];
 
-const char* xHorodateurGet(void)
+const char* xHorodateurGetString(void)
 {
     time_t l_tNow;
     struct tm* l_ptTm;
@@ -37,4 +37,19 @@ const char* xHorodateurGet(void)
     }
 
     return s_cTimeBuffer;
+}
+
+
+uint32_t xHorodateurGet(void)
+{
+    time_t l_tNow;
+    struct tm* l_ptTm;
+
+    // Obtenir le temps actuel
+    time(&l_tNow);
+    l_ptTm = localtime(&l_tNow);
+
+    X_ASSERT(l_ptTm != NULL);
+   
+	return (uint32_t)l_tNow;
 }

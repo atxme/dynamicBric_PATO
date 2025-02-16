@@ -25,13 +25,19 @@ int mutexCreate(xos_mutex_t* p_ptMutex)
 #else
     pthread_mutexattr_t l_tAttr;
     pthread_mutexattr_init(&l_tAttr);
-    pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE);
+    int result = pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE);
 
-    if (pthread_mutex_init(&p_ptMutex->t_mutex, &l_tAttr) != 0) {
+    if (pthread_mutex_init(&p_ptMutex->t_mutex, &l_tAttr) != 0) 
+    {
         pthread_mutexattr_destroy(&l_tAttr);
         return MUTEX_ERROR;
     }
-    pthread_mutexattr_destroy(&l_tAttr);
+
+    if (result != 0) 
+    {
+        pthread_mutexattr_destroy(&l_tAttr);
+        return MUTEX_ERROR;
+    }
 #endif
 
     p_ptMutex->t_iState = MUTEX_UNLOCKED;
@@ -131,7 +137,6 @@ int mutexLockTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
 int mutexUnlock(xos_mutex_t* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
-    X_ASSERT(p_ptMutex->t_iState == MUTEX_LOCKED);
 
 #ifdef _WIN32
     if (!ReleaseMutex(p_ptMutex->t_mutex)) {

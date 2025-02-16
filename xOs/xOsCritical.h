@@ -72,6 +72,14 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical);
 int osCriticalLock(os_critical_t* p_pttOSCritical);
 
 //////////////////////////////////
+/// @brief osCriticalLock
+/// @param p_pttOSCritical pointer to the critical section
+/// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise
+/// @note lock the critical section
+/////////////////////////////////
+int osCriticalLockTimeout(os_critical_t* p_pttOSCritical, uint32_t timeout);
+
+//////////////////////////////////
 /// @brief osCriticalLockWithTimeout
 /// @param p_pttOSCritical pointer to the critical section
 /// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise*
