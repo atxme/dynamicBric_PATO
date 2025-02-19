@@ -1,55 +1,64 @@
-////////////////////////////////////////////////////////////
-//  horodateur source file
-//  implements timestamp functions
-//
-// general discloser: copy or share the file is forbidden
-// Written : 12/01/2025
-////////////////////////////////////////////////////////////
-
 #include "xOsHorodateur.h"
 #include "xAssert.h"
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
-#define XOS_HORODATEUR_BUFFER_SIZE 48
+#define XOS_HORODATEUR_BUFFER_SIZE 64
 
-static char s_cTimeBuffer[XOS_HORODATEUR_BUFFER_SIZE];
+// Buffer thread-local : chaque thread aura sa propre copie
+static __thread char s_cTimeBuffer[XOS_HORODATEUR_BUFFER_SIZE];
 
+////////////////////////////////////////////////////////////
+/// xHorodateurGetString
+////////////////////////////////////////////////////////////
 const char* xHorodateurGetString(void)
 {
-    time_t l_tNow;
-    struct tm* l_ptTm;
+    struct timespec ts;
+    struct tm tm_result;
 
-    // Obtenir le temps actuel
-    time(&l_tNow);
-    l_ptTm = localtime(&l_tNow);
+    // Réinitialiser le buffer thread-local
+    memset(s_cTimeBuffer, 0, XOS_HORODATEUR_BUFFER_SIZE);
 
-    if (l_ptTm == NULL)
-    {
+    // Obtenir l'heure actuelle avec haute résolution
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
         return NULL;
     }
 
-    // Formater dans le buffer statique
-    if (strftime(s_cTimeBuffer, XOS_HORODATEUR_BUFFER_SIZE,
-        "%Y-%m-%d %H:%M:%S", l_ptTm) == 0)
-    {
+    // Conversion en heure locale de façon thread-safe
+    if (localtime_r(&ts.tv_sec, &tm_result) == NULL) {
+        return NULL;
+    }
+
+    // Formater la partie "date/heure" (YYYY-MM-DD HH:MM:SS)
+    if (strftime(s_cTimeBuffer, XOS_HORODATEUR_BUFFER_SIZE, "%Y-%m-%d %H:%M:%S", &tm_result) == 0) {
+        return NULL;
+    }
+
+    // Calculer la taille actuelle dans le buffer
+    size_t len = strlen(s_cTimeBuffer);
+
+    // Concaténer directement les millisecondes dans le buffer
+    // ts.tv_nsec est en nanosecondes, on le convertit en millisecondes
+    int written = snprintf(s_cTimeBuffer + len, XOS_HORODATEUR_BUFFER_SIZE - len, ".%03ld", ts.tv_nsec / 1000000);
+    if (written < 0 || (size_t)written >= XOS_HORODATEUR_BUFFER_SIZE - len) {
         return NULL;
     }
 
     return s_cTimeBuffer;
 }
 
-
+////////////////////////////////////////////////////////////
+/// xHorodateurGet
+////////////////////////////////////////////////////////////
 uint32_t xHorodateurGet(void)
 {
-    time_t l_tNow;
-    struct tm* l_ptTm;
-
+    struct timespec ts;
     // Obtenir le temps actuel
-    time(&l_tNow);
-    l_ptTm = localtime(&l_tNow);
-
-    X_ASSERT(l_ptTm != NULL);
-   
-	return (uint32_t)l_tNow;
+    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+        X_ASSERT(0); // Erreur critique
+        return 0;
+    }
+    // Retourner la partie secondes (timestamp Unix)
+    return (uint32_t)ts.tv_sec;
 }

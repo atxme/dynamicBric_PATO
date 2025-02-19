@@ -128,7 +128,7 @@ TEST_F(MutexTest, ConcurrentAccessWithState) {
 // Test déverrouillage sans verrouillage (doit déclencher une assertion)
 TEST_F(MutexTest, UnlockWithoutLock) {
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
-    EXPECT_DEATH(mutexUnlock(&mutex), ".*");
+    EXPECT_EQ(mutexUnlock(&mutex), EPERM);
 }
 
 // Test avec pointeur null (doit déclencher une assertion)

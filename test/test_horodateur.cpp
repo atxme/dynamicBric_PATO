@@ -26,9 +26,11 @@ protected:
 
     // Helper pour valider le format de timestamp
     bool isValidTimestampFormat(const char* timestamp) {
-        std::regex pattern("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}");
+        // Le pattern accepte le format "YYYY-MM-DD HH:MM:SS" éventuellement suivi de ".xxx"
+        std::regex pattern("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?");
         return std::regex_match(timestamp, pattern);
     }
+
 };
 
 // Test de base pour xHorodateurGet

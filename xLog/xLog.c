@@ -18,6 +18,9 @@ static xos_log_config_t s_tLogConfig = { 0 };
 static bool s_bInitialized = false;
 static xos_mutex_t s_tLogMutex;
 
+////////////////////////////////////////////////////////////
+/// xLogInit
+////////////////////////////////////////////////////////////
 int xLogInit(xos_log_config_t* p_ptConfig)
 {
     X_ASSERT(p_ptConfig != NULL);
@@ -48,6 +51,9 @@ int xLogInit(xos_log_config_t* p_ptConfig)
     return XOS_LOG_OK;
 }
 
+////////////////////////////////////////////////////////////
+/// xLogWrite
+////////////////////////////////////////////////////////////
 int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcFormat, ...)
 {
     X_ASSERT(p_ptkcFile != NULL);
@@ -59,13 +65,7 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
         return XOS_LOG_ERROR;
     }
 
-    // Double-checked locking pattern
-    if (!s_bInitialized)
-    {
-        return XOS_LOG_NOT_INIT;
-    }
-
-    // Vérifier à nouveau après avoir acquis le mutex
+    // Vérifier l'initialisation et libérer le mutex en cas d'erreur
     if (!s_bInitialized)
     {
         mutexUnlock(&s_tLogMutex);
@@ -75,18 +75,19 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     // Formater le message
     va_list args;
     va_start(args, p_ptkcFormat);
-    
+
     char l_cBuffer[XOS_LOG_MSG_SIZE];
     vsnprintf(l_cBuffer, sizeof(l_cBuffer), p_ptkcFormat, args);
-    
+
     va_end(args);
 
-    // Écrire le log dans le fichier
+    // Écrire le log sur la console si activé
     if (s_tLogConfig.t_bLogToConsole)
     {
         printf("%s | %s:%d | %s\n", xHorodateurGetString(), p_ptkcFile, p_ulLine, l_cBuffer);
     }
 
+    // Écrire le log dans le fichier si activé
     if (s_tLogConfig.t_bLogToFile)
     {
         FILE* l_ptFile = fopen(s_tLogConfig.t_cLogPath, "a");
@@ -104,6 +105,9 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
     return l_iRet;
 }
 
+////////////////////////////////////////////////////////////
+/// xLogClose
+////////////////////////////////////////////////////////////
 int xLogClose(void)
 {
     int l_iRet = mutexLock(&s_tLogMutex);
