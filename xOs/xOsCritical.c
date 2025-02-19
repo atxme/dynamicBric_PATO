@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <time.h>
 
+
 ////////////////////////////////////////////////////////////
 /// osCriticalCreate
 ////////////////////////////////////////////////////////////
@@ -11,7 +12,7 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical)
 
     pthread_mutexattr_t l_tAttr;
     pthread_mutexattr_init(&l_tAttr);
-    pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE);
         
 
     if (pthread_mutex_init(&p_pttOSCritical->critical, &l_tAttr) != 0) {
@@ -20,8 +21,8 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical)
     }
 
     pthread_mutexattr_destroy(&l_tAttr);
-    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
-    p_pttOSCritical->ulTimeout = OS_CRITICAL_DEFAULT_TIMEOUT;
+	atomic_store(&p_pttOSCritical->a_usLockCounter, 0);
+	atomic_store(&p_pttOSCritical->a_bLock, false);
 
     return OS_CRITICAL_SUCCESS;
 }
@@ -37,39 +38,11 @@ int osCriticalLock(os_critical_t* p_pttOSCritical)
         return OS_CRITICAL_ERROR;
     }
 
-    p_pttOSCritical->iLock = OS_CRITICAL_LOCKED;
+	//increase the counter and update the critical section status 
+    atomic_fetch_add(&p_pttOSCritical->a_usLockCounter, 1);
+	atomic_store(&p_pttOSCritical->a_bLock, true);
     return OS_CRITICAL_SUCCESS;
 }
-
-////////////////////////////////////////////////////////////
-/// osCriticalLockTimeout
-////////////////////////////////////////////////////////////
-int osCriticalLockWithTimeout(os_critical_t* p_pttOSCritical)
-{
-    X_ASSERT(p_pttOSCritical != NULL);
-	X_ASSERT(p_pttOSCritical->ulTimeout != OS_CRITICAL_DEFAULT_TIMEOUT);    // Timeout must be set
-
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
-        return OS_CRITICAL_ERROR;
-    }
-
-    uint64_t nsec = (uint64_t)ts.tv_nsec + (uint64_t)(p_pttOSCritical->ulTimeout % 1000) * 1000000ULL;
-    ts.tv_sec += p_pttOSCritical->ulTimeout / 1000 + (nsec / 1000000000ULL);
-    ts.tv_nsec = nsec % 1000000000ULL;
-
-    int result = pthread_mutex_timedlock(&p_pttOSCritical->critical, &ts);
-    if (result == ETIMEDOUT) {
-        return OS_CRITICAL_TIMEOUT;
-    }
-    else if (result != 0) {
-        return OS_CRITICAL_ERROR;
-    }
-
-    p_pttOSCritical->iLock = OS_CRITICAL_LOCKED;
-    return OS_CRITICAL_SUCCESS;
-}
-
 
 ////////////////////////////////////////////////////////////
 /// osCriticalUnlock
@@ -78,11 +51,24 @@ int osCriticalUnlock(os_critical_t* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
+	if (atomic_load(&p_pttOSCritical->a_usLockCounter) == 0)
+    {
+		return OS_CRITICAL_ERROR;
+	}
+
     if (pthread_mutex_unlock(&p_pttOSCritical->critical) != 0) {
         return OS_CRITICAL_ERROR;
     }
 
-    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
+	// Decrement the lock counter
+    atomic_fetch_sub(&p_pttOSCritical->a_usLockCounter, 1);
+
+	// If the lock counter is 0, set the lock status to false
+	if (atomic_load(&p_pttOSCritical->a_usLockCounter) == 0)
+	{
+		atomic_store(&p_pttOSCritical->a_bLock, false);
+	}
+
     return OS_CRITICAL_SUCCESS;
 }
 
@@ -93,10 +79,24 @@ int osCriticalDestroy(os_critical_t* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
-    if (pthread_mutex_destroy(&p_pttOSCritical->critical) != 0) {
+    // Vérifier que le compteur de verrou est à zéro
+    if (atomic_load(&p_pttOSCritical->a_usLockCounter) != 0)
+    {
+        // Un ou plusieurs verrous sont toujours en place
         return OS_CRITICAL_ERROR;
     }
 
-    p_pttOSCritical->iLock = OS_CRITICAL_UNLOCKED;
+    // Vérifier que le flag du verrou indique bien que le mutex n'est pas verrouillé
+    if (atomic_load(&p_pttOSCritical->a_bLock))
+    {
+        return OS_CRITICAL_ERROR;
+    }
+
+    // À ce stade, on considère que le mutex n'est plus en cours d'utilisation
+    if (pthread_mutex_destroy(&p_pttOSCritical->critical) != 0)
+    {
+        return OS_CRITICAL_ERROR;
+    }
+
     return OS_CRITICAL_SUCCESS;
 }

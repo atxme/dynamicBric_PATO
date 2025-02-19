@@ -15,16 +15,18 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
 #include "xAssert.h"
-
-#ifdef _WIN32
-#include <windows.h>
-#else
 #include <pthread.h>
 #include <sys/time.h>
 #define _POSIX_C_SOURCE 200809L
-#endif // _WIN32
+
+#ifdef __cplusplus
+#include <atomic>
+#else
+#include <stdatomic.h>
+#endif
+
+
 
 #define OS_CRITICAL_SUCCESS 0
 #define OS_CRITICAL_ERROR -1
@@ -32,26 +34,28 @@
 #define OS_CRITICAL_LOCKED 0
 #define OS_CRITICAL_UNLOCKED 1
 
-#define OS_CRITICAL_DEFAULT_TIMEOUT 0
-#define OS_CRITICAL_TIMEOUT -2
-
 
 //////////////////////////////////
 /// @brief critical struct creation
-/// @param lock critical lock status
-/// @param timeout critical timeout 
+/// @param atomic lock critical lock status
+/// @param critical critical section
+/// @param atomic lock counter critical lock counter
 /// @note the structure is used for all the management of the critical section
 /// @note the critical section is used to protect the shared resources
+/// 
+/// @pre none
 //////////////////////////////////
 typedef struct {
-	int iLock;   // lock status
-	unsigned long ulTimeout; // timeout in ms 
-#ifdef _WIN32
-	CRITICAL_SECTION critical; // critical section
+    pthread_mutex_t critical; // section critique
+#ifdef __cplusplus
+    std::atomic<unsigned short> a_usLockCounter; // compteur de verrous
+    std::atomic<bool> a_bLock;                  // état du verrou
 #else
-	pthread_mutex_t critical; // critical section
-#endif // _WIN32
+    _Atomic unsigned short a_usLockCounter;     // compteur de verrous
+    _Atomic bool a_bLock;                         // état du verrou
+#endif
 } os_critical_t;
+
 
 //////////////////////////////////
 /// @brief osCriticalCreate
@@ -70,22 +74,6 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical);
 /// @note lock the critical section
 /////////////////////////////////
 int osCriticalLock(os_critical_t* p_pttOSCritical);
-
-//////////////////////////////////
-/// @brief osCriticalLock
-/// @param p_pttOSCritical pointer to the critical section
-/// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise
-/// @note lock the critical section
-/////////////////////////////////
-int osCriticalLockTimeout(os_critical_t* p_pttOSCritical, uint32_t timeout);
-
-//////////////////////////////////
-/// @brief osCriticalLockWithTimeout
-/// @param p_pttOSCritical pointer to the critical section
-/// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise*
-/// @note lock the critical section with timeout
-///////////////////////////////////
-int osCriticalLockWithTimeout(os_critical_t* p_pttOSCritical);
 
 //////////////////////////////////
 /// @brief osCriticalUnlock
