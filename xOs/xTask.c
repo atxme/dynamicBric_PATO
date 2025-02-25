@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////
 /// osTaskCreate
 ////////////////////////////////////////////////////////////
-int osTaskCreate(os_task_t* p_pttOSTask)
+int osTaskCreate(t_TaskCtx* p_pttOSTask)
 {
     if (p_pttOSTask == NULL || p_pttOSTask->task == NULL ||
         p_pttOSTask->stack_size == 0) {
@@ -29,12 +29,15 @@ int osTaskCreate(os_task_t* p_pttOSTask)
     // Configuration des attributs du thread
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     pthread_attr_setstacksize(&attr, p_pttOSTask->stack_size);
+
+	// Configuration de la priorité
 #ifdef OS_USE_RT_SCHEDULING
     // Configuration de la politique d'ordonnancement
     pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     schedParam.sched_priority = p_pttOSTask->priority;
     pthread_attr_setschedparam(&attr, &schedParam);
 #endif
+
     // Création du thread
     int ret = pthread_create(&p_pttOSTask->handle, &attr,
         p_pttOSTask->task, p_pttOSTask->arg);
@@ -54,7 +57,7 @@ int osTaskCreate(os_task_t* p_pttOSTask)
 ////////////////////////////////////////////////////////////
 /// osTaskEnd
 ////////////////////////////////////////////////////////////
-int osTaskEnd(os_task_t* p_pttOSTask)
+int osTaskEnd(t_TaskCtx* p_pttOSTask)
 {
     if (p_pttOSTask == NULL) {
         return OS_TASK_ERROR;
@@ -81,7 +84,7 @@ int osTaskEnd(os_task_t* p_pttOSTask)
 ////////////////////////////////////////////////////////////
 /// osTaskGetExitCode
 ////////////////////////////////////////////////////////////
-int osTaskGetExitCode(os_task_t* p_pttOSTask)
+int osTaskGetExitCode(t_TaskCtx* p_pttOSTask)
 {
     if (p_pttOSTask == NULL) {
         return OS_TASK_ERROR;

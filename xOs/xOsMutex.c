@@ -13,16 +13,10 @@
 ////////////////////////////////////////////////////////////
 /// mutexCreate
 ////////////////////////////////////////////////////////////
-int mutexCreate(xos_mutex_t* p_ptMutex)
+int mutexCreate(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    p_ptMutex->t_mutex = CreateMutex(NULL, FALSE, NULL);
-    if (p_ptMutex->t_mutex == NULL) {
-        return MUTEX_ERROR;
-    }
-#else
     pthread_mutexattr_t l_tAttr;
     pthread_mutexattr_init(&l_tAttr);
     int result = pthread_mutexattr_settype(&l_tAttr, PTHREAD_MUTEX_RECURSIVE);
@@ -38,7 +32,6 @@ int mutexCreate(xos_mutex_t* p_ptMutex)
         pthread_mutexattr_destroy(&l_tAttr);
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_UNLOCKED;
     p_ptMutex->t_ulTimeout = MUTEX_DEFAULT_TIMEOUT;
@@ -49,20 +42,13 @@ int mutexCreate(xos_mutex_t* p_ptMutex)
 ////////////////////////////////////////////////////////////
 /// mutexLock
 ////////////////////////////////////////////////////////////
-int mutexLock(xos_mutex_t* p_ptMutex)
+int mutexLock(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    DWORD l_dwResult = WaitForSingleObject(p_ptMutex->t_mutex, INFINITE);
-    if (l_dwResult == WAIT_FAILED) {
-        return MUTEX_ERROR;
-    }
-#else
     if (pthread_mutex_lock(&p_ptMutex->t_mutex) != 0) {
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_LOCKED;
     return MUTEX_OK;
@@ -71,19 +57,10 @@ int mutexLock(xos_mutex_t* p_ptMutex)
 ////////////////////////////////////////////////////////////
 /// mutexTryLock
 ////////////////////////////////////////////////////////////
-int mutexTryLock(xos_mutex_t* p_ptMutex)
+int mutexTryLock(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    DWORD l_dwResult = WaitForSingleObject(p_ptMutex->t_mutex, 0);
-    if (l_dwResult == WAIT_TIMEOUT) {
-        return MUTEX_TIMEOUT;
-    }
-    if (l_dwResult == WAIT_FAILED) {
-        return MUTEX_ERROR;
-    }
-#else
     int l_iResult = pthread_mutex_trylock(&p_ptMutex->t_mutex);
     if (l_iResult == EBUSY) {
         return MUTEX_TIMEOUT;
@@ -91,7 +68,6 @@ int mutexTryLock(xos_mutex_t* p_ptMutex)
     if (l_iResult != 0) {
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_LOCKED;
     return MUTEX_OK;
@@ -100,19 +76,10 @@ int mutexTryLock(xos_mutex_t* p_ptMutex)
 ////////////////////////////////////////////////////////////
 /// mutexLockTimeout
 ////////////////////////////////////////////////////////////
-int mutexLockTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
+int mutexLockTimeout(t_MutexCtx* p_ptMutex, unsigned long p_ulTimeout)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    DWORD l_dwResult = WaitForSingleObject(p_ptMutex->t_mutex, p_ulTimeout);
-    if (l_dwResult == WAIT_TIMEOUT) {
-        return MUTEX_TIMEOUT;
-    }
-    if (l_dwResult == WAIT_FAILED) {
-        return MUTEX_ERROR;
-    }
-#else
     struct timespec l_tTimeout;
     clock_gettime(CLOCK_REALTIME, &l_tTimeout);
     l_tTimeout.tv_sec += p_ulTimeout / 1000;
@@ -125,7 +92,6 @@ int mutexLockTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
     if (l_iResult != 0) {
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_LOCKED;
     return MUTEX_OK;
@@ -134,19 +100,13 @@ int mutexLockTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
 ////////////////////////////////////////////////////////////
 /// mutexUnlock
 ////////////////////////////////////////////////////////////
-int mutexUnlock(xos_mutex_t* p_ptMutex)
+int mutexUnlock(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    if (!ReleaseMutex(p_ptMutex->t_mutex)) {
-        return MUTEX_ERROR;
-    }
-#else
     if (pthread_mutex_unlock(&p_ptMutex->t_mutex) != 0) {
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_UNLOCKED;
     return MUTEX_OK;
@@ -155,19 +115,13 @@ int mutexUnlock(xos_mutex_t* p_ptMutex)
 ////////////////////////////////////////////////////////////
 /// mutexDestroy
 ////////////////////////////////////////////////////////////
-int mutexDestroy(xos_mutex_t* p_ptMutex)
+int mutexDestroy(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-#ifdef _WIN32
-    if (!CloseHandle(p_ptMutex->t_mutex)) {
-        return MUTEX_ERROR;
-    }
-#else
     if (pthread_mutex_destroy(&p_ptMutex->t_mutex) != 0) {
         return MUTEX_ERROR;
     }
-#endif
 
     p_ptMutex->t_iState = MUTEX_UNLOCKED;
     return MUTEX_OK;
@@ -176,7 +130,7 @@ int mutexDestroy(xos_mutex_t* p_ptMutex)
 ////////////////////////////////////////////////////////////
 /// mutexSetTimeout
 ////////////////////////////////////////////////////////////
-int mutexSetTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
+int mutexSetTimeout(t_MutexCtx* p_ptMutex, unsigned long p_ulTimeout)
 {
     X_ASSERT(p_ptMutex != NULL);
 
@@ -187,7 +141,7 @@ int mutexSetTimeout(xos_mutex_t* p_ptMutex, unsigned long p_ulTimeout)
 ////////////////////////////////////////////////////////////
 /// mutexGetState
 ////////////////////////////////////////////////////////////
-int mutexGetState(xos_mutex_t* p_ptMutex)
+int mutexGetState(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 

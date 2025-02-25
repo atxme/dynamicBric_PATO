@@ -21,7 +21,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #ifdef __cplusplus
-#include <atomic>
+#include <atomic>   //only for test lib and C++ 20
 #else
 #include <stdatomic.h>
 #endif
@@ -54,7 +54,7 @@ typedef struct {
     _Atomic unsigned short a_usLockCounter;     // compteur de verrous
     _Atomic bool a_bLock;                         // état du verrou
 #endif
-} os_critical_t;
+} t_osCriticalCtx;
 
 
 //////////////////////////////////
@@ -64,7 +64,7 @@ typedef struct {
 /// @note create the critical section
 /// @note timeout is set to 0
 //////////////////////////////////
-int osCriticalCreate(os_critical_t* p_pttOSCritical);
+int osCriticalCreate(t_osCriticalCtx* p_pttOSCritical);
 
 
 //////////////////////////////////
@@ -73,7 +73,7 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical);
 /// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise
 /// @note lock the critical section
 /////////////////////////////////
-int osCriticalLock(os_critical_t* p_pttOSCritical);
+int osCriticalLock(t_osCriticalCtx* p_pttOSCritical);
 
 //////////////////////////////////
 /// @brief osCriticalUnlock
@@ -81,7 +81,7 @@ int osCriticalLock(os_critical_t* p_pttOSCritical);
 /// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise
 /// @note unlock the critical section
 //////////////////////////////////
-int osCriticalUnlock(os_critical_t* p_pttOSCritical);
+int osCriticalUnlock(t_osCriticalCtx* p_pttOSCritical);
 
 //////////////////////////////////
 /// @brief osCriticalDestroy
@@ -89,7 +89,7 @@ int osCriticalUnlock(os_critical_t* p_pttOSCritical);
 /// @return OS_CRITICAL_SUCCESS if success, OS_CRITICAL_ERROR otherwise
 /// @note destroy the critical section
 //////////////////////////////////
-int osCriticalDestroy(os_critical_t* p_pttOSCritical);
+int osCriticalDestroy(t_osCriticalCtx* p_pttOSCritical);
 
 
 #endif // OS_CRITICAL_H_

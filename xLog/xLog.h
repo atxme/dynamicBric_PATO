@@ -18,6 +18,7 @@
 #define XOS_LOG_ERROR        -1
 #define XOS_LOG_INVALID      -2
 #define XOS_LOG_NOT_INIT     -3
+#define XOS_LOG_MUTEX_ERROR  -4
 
 // Log buffer sizes
 #define XOS_LOG_PATH_SIZE    256
@@ -29,14 +30,14 @@ typedef struct
     bool t_bLogToFile;            // Enable file logging
     bool t_bLogToConsole;         // Enable console logging
     char t_cLogPath[XOS_LOG_PATH_SIZE]; // Log file path
-} xos_log_config_t;
+} t_logCtx;
 
 //////////////////////////////////
 /// @brief Initialize logging system
 /// @param p_ptConfig : log configuration
 /// @return success or error code
 //////////////////////////////////
-int xLogInit(xos_log_config_t* p_ptConfig);
+int xLogInit(t_logCtx* p_ptConfig);
 
 //////////////////////////////////
 /// @brief Write log message

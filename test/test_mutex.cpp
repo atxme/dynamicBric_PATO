@@ -15,10 +15,10 @@ extern "C" {
 
 class MutexTest : public ::testing::Test {
 protected:
-    xos_mutex_t mutex;
+    t_MutexCtx mutex;
 
     void SetUp() override {
-        memset(&mutex, 0, sizeof(xos_mutex_t));
+        memset(&mutex, 0, sizeof(t_MutexCtx));
     }
 
     void TearDown() override {
@@ -128,7 +128,7 @@ TEST_F(MutexTest, ConcurrentAccessWithState) {
 // Test déverrouillage sans verrouillage (doit déclencher une assertion)
 TEST_F(MutexTest, UnlockWithoutLock) {
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
-    EXPECT_EQ(mutexUnlock(&mutex), EPERM);
+    EXPECT_EQ(mutexUnlock(&mutex), MUTEX_ERROR);
 }
 
 // Test avec pointeur null (doit déclencher une assertion)

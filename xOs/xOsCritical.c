@@ -1,3 +1,11 @@
+////////////////////////////////////////////////////////////
+//  os critical src file
+//  defines the os function for critical section manipulation
+//
+// general discloser: copy or share the file is forbidden
+// Written : 14/11/2024
+////////////////////////////////////////////////////////////
+
 #include "xOsCritical.h"
 #include <errno.h>
 #include <time.h>
@@ -6,7 +14,7 @@
 ////////////////////////////////////////////////////////////
 /// osCriticalCreate
 ////////////////////////////////////////////////////////////
-int osCriticalCreate(os_critical_t* p_pttOSCritical)
+int osCriticalCreate(t_osCriticalCtx* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
@@ -30,7 +38,7 @@ int osCriticalCreate(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 /// osCriticalLock
 ////////////////////////////////////////////////////////////
-int osCriticalLock(os_critical_t* p_pttOSCritical) 
+int osCriticalLock(t_osCriticalCtx* p_pttOSCritical) 
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
@@ -47,7 +55,7 @@ int osCriticalLock(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 /// osCriticalUnlock
 ////////////////////////////////////////////////////////////
-int osCriticalUnlock(os_critical_t* p_pttOSCritical)
+int osCriticalUnlock(t_osCriticalCtx* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
 
@@ -75,7 +83,7 @@ int osCriticalUnlock(os_critical_t* p_pttOSCritical)
 ////////////////////////////////////////////////////////////
 /// osCriticalDestroy
 ////////////////////////////////////////////////////////////
-int osCriticalDestroy(os_critical_t* p_pttOSCritical)
+int osCriticalDestroy(t_osCriticalCtx* p_pttOSCritical)
 {
     X_ASSERT(p_pttOSCritical != NULL);
 

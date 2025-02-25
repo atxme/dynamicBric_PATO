@@ -36,7 +36,7 @@ typedef enum {
     XOS_HASH_TYPE_SHA3_384,
     XOS_HASH_TYPE_SHA3_512,
     XOS_HASH_TYPE_KECCAK_256
-} xos_hash_type_t;
+} t_hashAlgorithm;
 
 //////////////////////////////////
 /// @brief Calculate hash of data
@@ -47,8 +47,11 @@ typedef enum {
 /// @param p_pulHashSize : size of hash buffer
 /// @return : success or error code
 //////////////////////////////////
-int xHashCalculate(xos_hash_type_t p_eType, const void* p_ptData, size_t p_ulSize,
-    uint8_t* p_ptHash, size_t* p_pulHashSize);
+int xHashCalculate(t_hashAlgorithm p_eType, 
+                   const void* p_ptData, 
+                   size_t p_ulSize,
+                   uint8_t* p_ptHash, 
+                   size_t* p_pulHashSize);
 
 //////////////////////////////////
 /// @brief Initialize hash context
@@ -56,7 +59,7 @@ int xHashCalculate(xos_hash_type_t p_eType, const void* p_ptData, size_t p_ulSiz
 /// @param p_ptContext : hash context
 /// @return : success or error code
 //////////////////////////////////
-int xHashInit(xos_hash_type_t p_eType, void* p_ptContext);
+int xHashInit(t_hashAlgorithm p_eType, void* p_ptContext);
 
 //////////////////////////////////
 /// @brief Update hash with data
@@ -66,8 +69,10 @@ int xHashInit(xos_hash_type_t p_eType, void* p_ptContext);
 /// @param p_ulSize : input size
 /// @return : success or error code
 //////////////////////////////////
-int xHashUpdate(xos_hash_type_t p_eType, void* p_ptContext,
-    const void* p_ptData, size_t p_ulSize);
+int xHashUpdate(t_hashAlgorithm p_eType, 
+                void* p_ptContext,
+                const void* p_ptData, 
+                size_t p_ulSize);
 
 //////////////////////////////////
 /// @brief Finalize hash calculation
@@ -77,7 +82,9 @@ int xHashUpdate(xos_hash_type_t p_eType, void* p_ptContext,
 /// @param p_pulHashSize : size of hash buffer
 /// @return : success or error code
 //////////////////////////////////
-int xHashFinalize(xos_hash_type_t p_eType, void* p_ptContext,
-    uint8_t* p_ptHash, size_t* p_pulHashSize);
+int xHashFinalize(t_hashAlgorithm p_eType, 
+                  void* p_ptContext,
+                  uint8_t* p_ptHash, 
+                  size_t* p_pulHashSize);
 
 #endif // XOS_HASH_H_

@@ -11,6 +11,9 @@
 #include <string.h>
 #include <unistd.h>
 
+////////////////////////////////////////////////////////////
+/// xTimerCreate
+////////////////////////////////////////////////////////////
 int xTimerCreate(xos_timer_t* p_ptTimer, uint32_t p_ulPeriod, uint8_t p_ucMode)
 {
     X_ASSERT(p_ptTimer != NULL);
@@ -25,6 +28,9 @@ int xTimerCreate(xos_timer_t* p_ptTimer, uint32_t p_ulPeriod, uint8_t p_ucMode)
     return XOS_TIMER_OK;
 }
 
+////////////////////////////////////////////////////////////
+/// xTimerStart
+////////////////////////////////////////////////////////////
 int xTimerStart(xos_timer_t* p_ptTimer)
 {
     X_ASSERT(p_ptTimer != NULL);
@@ -45,6 +51,9 @@ int xTimerStart(xos_timer_t* p_ptTimer)
     return XOS_TIMER_OK;
 }
 
+////////////////////////////////////////////////////////////
+/// xTimerStop
+////////////////////////////////////////////////////////////
 int xTimerStop(xos_timer_t* p_ptTimer)
 {
     X_ASSERT(p_ptTimer != NULL);
@@ -52,6 +61,9 @@ int xTimerStop(xos_timer_t* p_ptTimer)
     return XOS_TIMER_OK;
 }
 
+////////////////////////////////////////////////////////////
+/// xTimerExpired
+////////////////////////////////////////////////////////////
 int xTimerExpired(xos_timer_t* p_ptTimer)
 {
     X_ASSERT(p_ptTimer != NULL);
@@ -93,6 +105,9 @@ int xTimerExpired(xos_timer_t* p_ptTimer)
     return XOS_TIMER_TIMEOUT;
 }
 
+////////////////////////////////////////////////////////////
+/// xTimerGetCurrentMs
+////////////////////////////////////////////////////////////
 uint32_t xTimerGetCurrentMs(void)
 {
     struct timespec l_tNow;
@@ -100,6 +115,9 @@ uint32_t xTimerGetCurrentMs(void)
     return (uint32_t)((l_tNow.tv_sec * 1000ULL) + (l_tNow.tv_nsec / 1000000ULL));
 }
 
+////////////////////////////////////////////////////////////
+/// xTimerDelay
+////////////////////////////////////////////////////////////
 void xTimerDelay(uint32_t p_ulDelay)
 {
     usleep(p_ulDelay * 1000);

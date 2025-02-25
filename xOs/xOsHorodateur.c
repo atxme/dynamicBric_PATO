@@ -4,9 +4,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#define XOS_HORODATEUR_BUFFER_SIZE 64
+#define XOS_HORODATEUR_BUFFER_SIZE 64   // Size of the buffer for the formatted timestamp
 
-// Buffer thread-local : chaque thread aura sa propre copie
+// Buffer thread-local : each thread has its own buffer
 static __thread char s_cTimeBuffer[XOS_HORODATEUR_BUFFER_SIZE];
 
 ////////////////////////////////////////////////////////////

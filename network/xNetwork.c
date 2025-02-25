@@ -173,11 +173,7 @@ int closeSocket(int p_iSocket)
         return NETWORK_INVALID_SOCKET;
     }
 
-#ifdef _WIN32
-    int l_iResult = closesocket(p_iSocket);
-#else
     int l_iResult = close(p_iSocket);
-#endif
     return (l_iResult < 0) ? NETWORK_ERROR : NETWORK_OK;
 }
 

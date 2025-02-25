@@ -10,6 +10,9 @@
 #include "xLog/xLog.h"
 #include <stdlib.h>
 
+////////////////////////////////////////////////////////////
+/// xAssert
+////////////////////////////////////////////////////////////
 void xAssert(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg)
 {
     X_LOG_ASSERT("%s", "Assertion failed");
@@ -26,6 +29,9 @@ void xAssert(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg)
 #endif
 }
 
+////////////////////////////////////////////////////////////
+/// xAssertReturn
+////////////////////////////////////////////////////////////
 int xAssertReturn(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg, int p_iRet)
 {
     X_LOG_ASSERT("Assertion failed with return value %d", p_iRet);

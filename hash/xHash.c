@@ -12,7 +12,10 @@
 #include <openssl/evp.h>
 #include <string.h>
 
-int xHashCalculate(xos_hash_type_t p_eType, const void* p_ptData, size_t p_ulSize,
+////////////////////////////////////////////////////////////
+/// xHashCalculate
+////////////////////////////////////////////////////////////
+int xHashCalculate(t_hashAlgorithm p_eType, const void* p_ptData, size_t p_ulSize,
     uint8_t* p_ptHash, size_t* p_pulHashSize)
 {
     X_ASSERT_RETURN(p_ptData != NULL && p_ptHash != NULL && p_pulHashSize != NULL, XOS_HASH_INVALID);
@@ -62,7 +65,10 @@ int xHashCalculate(xos_hash_type_t p_eType, const void* p_ptData, size_t p_ulSiz
     return XOS_HASH_OK;
 }
 
-int xHashInit(xos_hash_type_t p_eType, void* p_ptContext)
+////////////////////////////////////////////////////////////
+/// xHashInit
+////////////////////////////////////////////////////////////
+int xHashInit(t_hashAlgorithm p_eType, void* p_ptContext)
 {
     X_ASSERT_RETURN(p_ptContext != NULL, XOS_HASH_INVALID);
 
@@ -106,7 +112,10 @@ int xHashInit(xos_hash_type_t p_eType, void* p_ptContext)
     return XOS_HASH_OK;
 }
 
-int xHashUpdate(xos_hash_type_t p_eType, void* p_ptContext,
+////////////////////////////////////////////////////////////
+/// xHashUpdate
+////////////////////////////////////////////////////////////
+int xHashUpdate(t_hashAlgorithm p_eType, void* p_ptContext,
     const void* p_ptData, size_t p_ulSize)
 {
     X_ASSERT_RETURN(p_ptContext != NULL && p_ptData != NULL, XOS_HASH_INVALID);
@@ -118,8 +127,13 @@ int xHashUpdate(xos_hash_type_t p_eType, void* p_ptContext,
     return XOS_HASH_OK;
 }
 
-int xHashFinalize(xos_hash_type_t p_eType, void* p_ptContext,
-    uint8_t* p_ptHash, size_t* p_pulHashSize)
+////////////////////////////////////////////////////////////
+/// xHashFinalize
+////////////////////////////////////////////////////////////
+int xHashFinalize(t_hashAlgorithm p_eType, 
+                  void* p_ptContext,
+                  uint8_t* p_ptHash, 
+                  size_t* p_pulHashSize)
 {
     X_ASSERT_RETURN(p_ptContext != NULL && p_ptHash != NULL && p_pulHashSize != NULL,
         XOS_HASH_INVALID);

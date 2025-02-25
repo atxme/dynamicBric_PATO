@@ -17,11 +17,11 @@ extern "C" {
 
 class LogTest : public ::testing::Test {
 protected:
-    xos_log_config_t config;
+    t_logCtx config;
     const char* TEST_LOG_FILE = "test.log";
 
     void SetUp() override {
-        memset(&config, 0, sizeof(xos_log_config_t));
+        memset(&config, 0, sizeof(t_logCtx));
         config.t_bLogToConsole = true;
         config.t_bLogToFile = true;
         strncpy(config.t_cLogPath, TEST_LOG_FILE, XOS_LOG_PATH_SIZE);

@@ -32,20 +32,26 @@
 #define OS_TASK_EXIT_SUCCESS 0UL
 #define OS_TASK_EXIT_FAILURE -1UL
 
-// Définition de la politique d'ordonnancement
-// Pour l'ordonnancement en temps réel (RT), les threads utilisent SCHED_RR tandis que 
-// En revanche, pour l'ordonnancement normal (avec SCHED_OTHER), la priorité est fixe.
+typedef enum {
+    OS_SCHED_NORMAL = 0,  // SCHED_OTHER - Ordonnancement standard
+    OS_SCHED_FIFO,        // SCHED_FIFO - Temps réel FIFO
+    OS_SCHED_RR,          // SCHED_RR - Temps réel Round Robin
+    OS_SCHED_BATCH,       // SCHED_BATCH - Traitement par lots
+    OS_SCHED_IDLE         // SCHED_IDLE - Priorité très basse
+} t_SchedPolicy;
+
 #ifdef OS_USE_RT_SCHEDULING
-  // Pour Linux avec la politique temps réel SCHED_RR.
-  // La plage de priorité est obtenue dynamiquement via sched_get_priority_min/max.
-#define OS_TASK_LOWEST_PRIORITY sched_get_priority_min(SCHED_RR)
-#define OS_TASK_HIGHEST_PRIORITY sched_get_priority_max(SCHED_RR)
-#define OS_TASK_DEFAULT_PRIORITY ((OS_TASK_HIGHEST_PRIORITY + OS_TASK_LOWEST_PRIORITY) / 2)
+#define OS_DEFAULT_SCHED_POLICY OS_SCHED_FIFO
+// Pour Linux avec la politique temps réel
+#define OS_TASK_LOWEST_PRIORITY  1  // Minimum pour SCHED_FIFO/RR
+#define OS_TASK_HIGHEST_PRIORITY 99 // Maximum pour SCHED_FIFO/RR
+#define OS_TASK_DEFAULT_PRIORITY 50 // Valeur médiane
 #else
-  // Pour l'ordonnancement normal (SCHED_OTHER), la priorité est généralement fixe (valeur 0).
-#define OS_TASK_LOWEST_PRIORITY  20
-#define OS_TASK_HIGHEST_PRIORITY 0
-#define OS_TASK_DEFAULT_PRIORITY 10
+#define OS_DEFAULT_SCHED_POLICY OS_SCHED_NORMAL
+// Pour l'ordonnancement normal (nice values)
+#define OS_TASK_LOWEST_PRIORITY  19  // Priorité la plus basse (nice +19)
+#define OS_TASK_HIGHEST_PRIORITY -20 // Priorité la plus haute (nice -20)
+#define OS_TASK_DEFAULT_PRIORITY 0   // Priorité normale (nice 0)
 #endif
 
 // Taille par défaut de la pile : ici 8 MB
@@ -63,15 +69,35 @@ typedef struct {
     int status;           // Statut de la tâche
     int exit_code;        // Code de sortie de la tâche
     pthread_t handle;     // Handle du thread pthread
-} os_task_t;
+#ifdef OS_USE_RT_SCHEDULING
+	struct sched_param sched_param; // Paramètres d'ordonnancement
+    t_SchedPolicy policy; // Politique d'ordonnancement
+#endif
+} t_TaskCtx;
 
 //////////////////////////////////
-// Déclarations des fonctions de gestion de tâches
+/// @brief Create a task
+/// @param p_pttOSTask : pointer to the task structure context
+/// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
+/// 
+/// @note create a task with the given parameters
+/// @note the task is created with the default stack size
+/// @pre configuration of the context structure
 //////////////////////////////////
-int osTaskCreate(os_task_t* p_pttOSTask);
-int osTaskEnd(os_task_t* p_pttOSTask);
+int osTaskCreate(t_TaskCtx* p_pttOSTask);
 
+//////////////////////////////////
+/// @brief End a task
+/// @param p_pttOSTask : pointer to the task structure context
+/// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
+//////////////////////////////////
+int osTaskEnd(t_TaskCtx* p_pttOSTask);
 
-int osTaskGetExitCode(os_task_t* p_pttOSTask);
+//////////////////////////////////
+/// @brief Suspend a task
+/// @param p_pttOSTask : pointer to the task structure context
+/// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
+//////////////////////////////////
+int osTaskGetExitCode(t_TaskCtx* p_pttOSTask);      //this function will be deleted don't use it 
 
 #endif // OS_TASK_H_

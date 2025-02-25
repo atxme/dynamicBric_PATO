@@ -16,8 +16,8 @@ static void* TestTaskFunction(void* arg) {
 }
 
 TEST(TaskTest, BasicTaskCreation) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
     int testValue = 0;
@@ -34,8 +34,8 @@ TEST(TaskTest, BasicTaskCreation) {
 }
 
 TEST(TaskTest, InvalidPriority) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.task = TestTaskFunction;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
 
@@ -49,8 +49,8 @@ TEST(TaskTest, InvalidPriority) {
 }
 
 TEST(TaskTest, InvalidStackSize) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.task = TestTaskFunction;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = 0;
@@ -58,8 +58,8 @@ TEST(TaskTest, InvalidStackSize) {
 }
 
 TEST(TaskTest, GetExitCode) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.task = TestTaskFunction;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
@@ -75,8 +75,8 @@ TEST(TaskTest, GetExitCode) {
 }
 
 TEST(TaskTest, TaskTermination) {
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.task = TestTaskFunction;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;
@@ -94,11 +94,11 @@ TEST(TaskTest, NullParameters) {
 TEST(TaskTest, MultipleTaskCreation) 
 {
     const int NUM_TASKS = 5;
-    os_task_t tasks[NUM_TASKS];
+    t_TaskCtx tasks[NUM_TASKS];
     int values[NUM_TASKS] = { 0 };
 
     for (int i = 0; i < NUM_TASKS; i++) {
-        memset(&tasks[i], 0, sizeof(os_task_t));
+        memset(&tasks[i], 0, sizeof(t_TaskCtx));
         tasks[i].task = TestTaskFunction;
         tasks[i].arg = &values[i];
         tasks[i].priority = OS_TASK_DEFAULT_PRIORITY;
@@ -116,8 +116,8 @@ TEST(TaskTest, LongRunningTask) {
         return nullptr;
         };
 
-    os_task_t task;
-    memset(&task, 0, sizeof(os_task_t));
+    t_TaskCtx task;
+    memset(&task, 0, sizeof(t_TaskCtx));
     task.task = longTask;
     task.priority = OS_TASK_DEFAULT_PRIORITY;
     task.stack_size = OS_TASK_DEFAULT_STACK_SIZE;

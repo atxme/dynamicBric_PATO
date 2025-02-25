@@ -17,7 +17,7 @@
 //////////////////////////////////
 static xos_event_subscriber_t s_tSubscribers[XOS_EVENT_HANDLER_MAX_SUBSCRIBERS];
 static bool s_bInitialized = false;
-static xos_mutex_t s_tHandlerMutex;
+static t_MutexCtx s_tHandlerMutex;
 static const uint32_t EVENT_CALLBACK_TIMEOUT_MS = 1000;
 
 //////////////////////////////////

@@ -10,10 +10,6 @@
 #ifndef NETWORK_CORE_H_
 #define NETWORK_CORE_H_
 
-#ifdef _WIN32
-#include <windows.h>
-#pragma comment(lib, "ws2_32.lib")
-#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -21,7 +17,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -177,4 +173,4 @@ int setSocketOption(int p_iSocket, int p_iOption, int p_iValue);
 ////////////////////////////////// 
 int getSocketOption(int p_iSocket, int p_iOption, int* p_ptiValue);
 
-#endif // N
+#endif // NETWORK_CORE_H_

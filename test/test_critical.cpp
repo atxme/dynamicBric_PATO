@@ -15,12 +15,12 @@ extern "C" {
 
 class CriticalTest : public ::testing::Test {
 protected:
-    os_critical_t critical;
+    t_osCriticalCtx critical;
 
     void SetUp() override {
         // Même si le memset n'est pas idéal sur des variables atomiques, ici
         // il permet d'assurer un état initial connu pour les tests.
-        memset(&critical, 0, sizeof(os_critical_t));
+        memset(&critical, 0, sizeof(t_osCriticalCtx));
     }
 
     void TearDown() override {
