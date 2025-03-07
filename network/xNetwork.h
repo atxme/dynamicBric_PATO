@@ -1,8 +1,10 @@
 ////////////////////////////////////////////////////////////
-//  network core header file
+//  network core header file for embedded systems
 //  defines the basic network types and constants
+//  IPv4-focused, thread-safe with TLS extension points
+//  Memory-optimized for embedded environments
 //
-// general discloser: copy or share the file is forbidden
+// general disclosure: copy or share the file is forbidden
 // Written : 14/11/2024
 ////////////////////////////////////////////////////////////
 #pragma once
@@ -17,11 +19,19 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
-
-
+#include <netdb.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+#include <stdbool.h>
+
+// Configuration constants - adjust as needed for target system
+#define NETWORK_MAX_SOCKETS 16   // Maximum number of simultaneous sockets
+#define NETWORK_BUFFER_SIZE 512  // Default buffer size for operations
+#define NETWORK_MAX_PENDING 5    // Default pending connections queue
 
 // network error codes
 #define NETWORK_OK 0
@@ -33,144 +43,238 @@
 #define NETWORK_INVALID_PORT -6
 #define NETWORK_INVALID_BUFFER -7
 #define NETWORK_INVALID_SIZE -8
+#define NETWORK_WOULD_BLOCK -9
+#define NETWORK_MUTEX_ERROR -10
+#define NETWORK_NO_RESOURCES -11
+#define NETWORK_INVALID_PARAM -12
 
+// Byte order conversion macros
 #define HOST_TO_NET_LONG(p_uiValue) htonl(p_uiValue)
 #define HOST_TO_NET_SHORT(p_usValue) htons(p_usValue)
-
 #define NET_TO_HOST_LONG(p_uiValue) ntohl(p_uiValue)
 #define NET_TO_HOST_SHORT(p_usValue) ntohs(p_usValue)
 
-// network address
+// Forward declarations for opaque types
+typedef struct NetworkContext NetworkContext;
+typedef struct NetworkSocket NetworkSocket;
+
+// network address structure (IPv4 focused)
 //////////////////////////////////
 /// t_cAddress : address string
 /// t_usPort : port number
 //////////////////////////////////
 typedef struct {
-    char t_cAddress[INET6_ADDRSTRLEN];  // Support both IPv4 and IPv6 addresses
+    char t_cAddress[INET_ADDRSTRLEN];
     unsigned short t_usPort;
 } NetworkAddress;
 
-// network socket
+// TLS configuration structure (extension point)
 //////////////////////////////////
-/// t_iSocket : socket handle
-/// t_iType : socket type
+/// t_bEnabled : TLS enabled flag
+/// t_pContext : TLS context (implementation specific)
+/// t_bVerifyPeer : verify peer certificate
+/// t_cCertPath : certificate path
+/// t_cKeyPath : private key path
 //////////////////////////////////
 typedef struct {
-    int t_iSocket;
-    int t_iType;
-} NetworkSocket;
-
-// available domain types
-#define NETWORK_DOMAIN_IPV4 AF_INET
-#define NETWORK_DOMAIN_IPV6 AF_INET6
+    bool t_bEnabled;
+    void* t_pContext;
+    bool t_bVerifyPeer;
+    char t_cCertPath[128];
+    char t_cKeyPath[128];
+} NetworkTlsConfig;
 
 // available socket types
 #define NETWORK_SOCK_TCP SOCK_STREAM
 #define NETWORK_SOCK_UDP SOCK_DGRAM
 
+
 // available socket options
 #define NETWORK_SOCK_BLOCKING 0
 #define NETWORK_SOCK_NONBLOCKING 1
 
-// available protocol type 
-#define NETWORK_PROTOCOL_TCP 0
-#define NETWORK_PROTOCOL_UDP 1
+// Event types for polling
+#define NETWORK_EVENT_READ  0x01
+#define NETWORK_EVENT_WRITE 0x02
+#define NETWORK_EVENT_ERROR 0x04
 
 //////////////////////////////////
-/// @brief socket creation structure 
-/// @param t_iDomain : domain type (NETWORK_DOMAIN_IPV4 or NETWORK_DOMAIN_IPV6)
-/// @param t_iType : socket type (NETWORK_SOCK_TCP or NETWORK_SOCK_UDP)
-/// @param t_iProtocol : protocol type (0 for default)
+/// Core API functions
 //////////////////////////////////
-typedef struct {
-    int t_iDomain;
-    int t_iType;
-    int t_iProtocol;
-} NetworkSocketCreation;
-
-// core functions 
 
 //////////////////////////////////
-/// @brief create socket stream 
-/// @param p_iSocketParameters : structure containing socket parameters
-/// @return : socket handle or error code
+/// @brief Initialize network library
+/// @return NetworkContext* Context handle or NULL on error
 //////////////////////////////////
-int createSocket(NetworkSocketCreation* p_tSocketParameters);
+NetworkContext* networkInit(void);
 
 //////////////////////////////////
-/// @brief bind socket to address
-/// @param p_iSocket : socket handle
-/// @param p_tAddress : address structure
-/// @param p_pttSockaddr : socket address sructure
-/// @return : error code
+/// @brief Cleanup network resources
+/// @param p_pContext Network context
+/// @return int Error code
 //////////////////////////////////
-int bindSocket(int p_iSocket, NetworkAddress* p_pttAddress, struct sockaddr* p_pttSockaddr);
+int networkCleanup(NetworkContext* p_pContext);
 
 //////////////////////////////////
-/// @brief listen to incoming connections
-/// @param p_iSocket : socket handle
-/// @param p_iBacklog : maximum number of pending connections
-/// @return : error code
+/// @brief Create a socket
+/// @param p_pContext Network context
+/// @param p_iType Socket type (NETWORK_SOCK_TCP or NETWORK_SOCK_UDP)
+/// @param p_iBlocking Blocking mode (NETWORK_SOCK_BLOCKING or NETWORK_SOCK_NONBLOCKING)
+/// @return NetworkSocket* Socket handle or NULL on error
 //////////////////////////////////
-int listenSocket(int p_iSocket, int p_iBacklog);
+NetworkSocket* networkCreateSocket(NetworkContext* p_pContext, int p_iType, int p_iBlocking);
 
 //////////////////////////////////
-/// @brief accept incoming connection
-/// @param p_iSocket : socket handle
-/// @param p_tAddress : address structure
-/// @return : socket handle or error code
+/// @brief Create a network address
+/// @param p_pcAddress IP address string (NULL or empty for INADDR_ANY)
+/// @param p_usPort Port number
+/// @return NetworkAddress Address structure
 //////////////////////////////////
-int acceptConnection(int p_iSocket, NetworkAddress* p_ptAddress);
+NetworkAddress networkMakeAddress(const char* p_pcAddress, unsigned short p_usPort);
 
 //////////////////////////////////
-/// @brief connect to remote address
-/// @param p_iSocket : socket handle
-/// @param p_tAddress : address structure
-/// @return : success or error code
+/// @brief Bind socket to address
+/// @param p_pSocket Socket handle
+/// @param p_pAddress Address structure
+/// @return int Error code
 //////////////////////////////////
-int connectSocket(int p_iSocket, NetworkAddress* p_ptAddress);
+int networkBind(NetworkSocket* p_pSocket, const NetworkAddress* p_pAddress);
 
 //////////////////////////////////
-/// @brief send data to remote address
-/// @param p_iSocket : socket handle
-/// @param p_ptBuffer : data buffer
-/// @param p_ulSize : data size
-/// @return : success or error code
+/// @brief Listen for incoming connections
+/// @param p_pSocket Socket handle
+/// @param p_iBacklog Maximum pending connections
+/// @return int Error code
 //////////////////////////////////
-int sendData(int p_iSocket, const void* p_ptpBuffer, unsigned long p_ulSize);
+int networkListen(NetworkSocket* p_pSocket, int p_iBacklog);
 
 //////////////////////////////////
-/// @brief receive data from remote address
-/// @param p_iSocket : socket handle
-/// @param p_pBuffer : data buffer
-/// @param p_iSize : data size
-/// @return : error code
+/// @brief Accept incoming connection
+/// @param p_pSocket Listening socket
+/// @param p_pClientAddress Address to store client info (can be NULL)
+/// @return NetworkSocket* New socket handle or NULL on error
 //////////////////////////////////
-int receiveData(int p_iSocket, void* p_ptBuffer, int p_iSize);
+NetworkSocket* networkAccept(NetworkSocket* p_pSocket, NetworkAddress* p_pClientAddress);
 
 //////////////////////////////////
-/// @brief close socket
-/// @param p_iSocket : socket handle
-/// @return : error code
+/// @brief Connect to remote server
+/// @param p_pSocket Socket handle
+/// @param p_pAddress Remote address
+/// @return int Error code
 //////////////////////////////////
-int closeSocket(int p_iSocket);
+int networkConnect(NetworkSocket* p_pSocket, const NetworkAddress* p_pAddress);
 
 //////////////////////////////////
-/// @brief set socket option
-/// @param p_iSocket : socket handle
-/// @param p_iOption : option type
-/// @param p_iValue : option value
-/// @return : error code
-///////////////////////////////////
-int setSocketOption(int p_iSocket, int p_iOption, int p_iValue);
+/// @brief Send data
+/// @param p_pSocket Socket handle
+/// @param p_pBuffer Data buffer
+/// @param p_ulSize Data size
+/// @return int Bytes sent or error code
+//////////////////////////////////
+int networkSend(NetworkSocket* p_pSocket, const void* p_pBuffer, unsigned long p_ulSize);
 
 //////////////////////////////////
-/// @brief get socket option
-/// @param p_iSocket : socket handle
-/// @param p_iOption : option type
-/// @param p_iValue : option value
-/// @return : error code
-////////////////////////////////// 
-int getSocketOption(int p_iSocket, int p_iOption, int* p_ptiValue);
+/// @brief Receive data
+/// @param p_pSocket Socket handle
+/// @param p_pBuffer Data buffer
+/// @param p_ulSize Buffer size
+/// @return int Bytes received or error code
+//////////////////////////////////
+int networkReceive(NetworkSocket* p_pSocket, void* p_pBuffer, unsigned long p_ulSize);
+
+//////////////////////////////////
+/// @brief Send data to specific address (UDP)
+/// @param p_pSocket Socket handle
+/// @param p_pBuffer Data buffer
+/// @param p_ulSize Data size
+/// @param p_pAddress Target address
+/// @return int Bytes sent or error code
+//////////////////////////////////
+int networkSendTo(NetworkSocket* p_pSocket, const void* p_pBuffer, 
+                  unsigned long p_ulSize, const NetworkAddress* p_pAddress);
+
+//////////////////////////////////
+/// @brief Receive data with sender info (UDP)
+/// @param p_pSocket Socket handle
+/// @param p_pBuffer Data buffer
+/// @param p_ulSize Buffer size
+/// @param p_pAddress Sender address
+/// @return int Bytes received or error code
+//////////////////////////////////
+int networkReceiveFrom(NetworkSocket* p_pSocket, void* p_pBuffer, 
+                       unsigned long p_ulSize, NetworkAddress* p_pAddress);
+
+//////////////////////////////////
+/// @brief Close socket
+/// @param p_pSocket Socket handle
+/// @return int Error code
+//////////////////////////////////
+int networkCloseSocket(NetworkSocket* p_pSocket);
+
+//////////////////////////////////
+/// @brief Set socket option
+/// @param p_pSocket Socket handle
+/// @param p_iOption Option type
+/// @param p_iValue Option value
+/// @return int Error code
+//////////////////////////////////
+int networkSetOption(NetworkSocket* p_pSocket, int p_iOption, int p_iValue);
+
+//////////////////////////////////
+/// @brief Set socket blocking mode
+/// @param p_pSocket Socket handle
+/// @param p_iBlocking NETWORK_SOCK_BLOCKING or NETWORK_SOCK_NONBLOCKING
+/// @return int Error code
+//////////////////////////////////
+int networkSetBlocking(NetworkSocket* p_pSocket, int p_iBlocking);
+
+//////////////////////////////////
+/// @brief Set socket timeout
+/// @param p_pSocket Socket handle
+/// @param p_iTimeoutMs Timeout in milliseconds
+/// @param p_bSendTimeout True for send timeout, false for receive timeout
+/// @return int Error code
+//////////////////////////////////
+int networkSetTimeout(NetworkSocket* p_pSocket, int p_iTimeoutMs, bool p_bSendTimeout);
+
+//////////////////////////////////
+/// @brief Configure TLS for socket (extension point)
+/// @param p_pSocket Socket handle
+/// @param p_pTlsConfig TLS configuration
+/// @return int Error code
+//////////////////////////////////
+int networkSetTls(NetworkSocket* p_pSocket, const NetworkTlsConfig* p_pTlsConfig);
+
+//////////////////////////////////
+/// @brief Poll socket for events
+/// @param p_ppSockets Array of socket handles
+/// @param p_piEvents Array of event flags (in/out)
+/// @param p_iCount Number of sockets
+/// @param p_iTimeoutMs Timeout in milliseconds (-1 for infinite)
+/// @return int Number of ready sockets or error code
+//////////////////////////////////
+int networkPoll(NetworkSocket** p_ppSockets, int* p_piEvents, 
+                int p_iCount, int p_iTimeoutMs);
+
+//////////////////////////////////
+/// @brief Get last error description
+/// @param p_iError Error code
+/// @return const char* Error description
+//////////////////////////////////
+const char* networkGetErrorString(int p_iError);
+
+//////////////////////////////////
+/// @brief Check if socket is connected
+/// @param p_pSocket Socket handle
+/// @return bool Connected status
+//////////////////////////////////
+bool networkIsConnected(NetworkSocket* p_pSocket);
+
+//////////////////////////////////
+/// @brief Get socket index from handle (for embedded debugging)
+/// @param p_pSocket Socket handle
+/// @return int Socket index or -1 if invalid
+//////////////////////////////////
+int networkGetSocketIndex(NetworkSocket* p_pSocket);
 
 #endif // NETWORK_CORE_H_

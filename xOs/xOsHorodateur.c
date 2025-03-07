@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #define XOS_HORODATEUR_BUFFER_SIZE 64   // Size of the buffer for the formatted timestamp
 
 // Buffer thread-local : each thread has its own buffer
@@ -17,15 +18,15 @@ const char* xHorodateurGetString(void)
     struct timespec ts;
     struct tm tm_result;
 
-    // Réinitialiser le buffer thread-local
+    // Rï¿½initialiser le buffer thread-localÂ²
     memset(s_cTimeBuffer, 0, XOS_HORODATEUR_BUFFER_SIZE);
 
-    // Obtenir l'heure actuelle avec haute résolution
+    // Obtenir l'heure actuelle avec haute rï¿½solution
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
         return NULL;
     }
 
-    // Conversion en heure locale de façon thread-safe
+    // Conversion en heure locale de faï¿½on thread-safe
     if (localtime_r(&ts.tv_sec, &tm_result) == NULL) {
         return NULL;
     }
@@ -38,7 +39,7 @@ const char* xHorodateurGetString(void)
     // Calculer la taille actuelle dans le buffer
     size_t len = strlen(s_cTimeBuffer);
 
-    // Concaténer directement les millisecondes dans le buffer
+    // Concatï¿½ner directement les millisecondes dans le buffer
     // ts.tv_nsec est en nanosecondes, on le convertit en millisecondes
     int written = snprintf(s_cTimeBuffer + len, XOS_HORODATEUR_BUFFER_SIZE - len, ".%03ld", ts.tv_nsec / 1000000);
     if (written < 0 || (size_t)written >= XOS_HORODATEUR_BUFFER_SIZE - len) {
