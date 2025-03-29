@@ -53,14 +53,12 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xOsCritical.c
     ${PROJECT_ROOT}/xOs/xOsMutex.c
     ${PROJECT_ROOT}/xOs/xOsHorodateur.c
+    ${PROJECT_ROOT}/xOs/xOsSemaphore.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/hash/xHash.c
     ${PROJECT_ROOT}/memory/xMemory.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/xLog/xLog.c
-    ${PROJECT_ROOT}/events/xEvent.c
-    ${PROJECT_ROOT}/events/xEventQueue.c
-    ${PROJECT_ROOT}/events/xEventHandler.c
 )
 
 # Raspberry Pi specific sources
@@ -76,9 +74,6 @@ set(RASPBERRY_SOURCES
 set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/test_assert.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_critical.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_event_handler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_event_queue.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_events.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_horodateur.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_memory.cpp
@@ -86,6 +81,7 @@ set(TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/test_network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_tasks.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_timer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_semaphores.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
 )
 

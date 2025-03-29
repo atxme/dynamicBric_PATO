@@ -18,9 +18,16 @@ protected:
     t_osCriticalCtx critical;
 
     void SetUp() override {
-        // Même si le memset n'est pas idéal sur des variables atomiques, ici
-        // il permet d'assurer un état initial connu pour les tests.
-        memset(&critical, 0, sizeof(t_osCriticalCtx));
+        // Initialiser les membres individuellement au lieu d'utiliser memset
+        // pour éviter le warning sur les types atomiques
+        pthread_mutex_init(&critical.critical, nullptr);
+#ifdef __cplusplus
+        critical.a_usLockCounter.store(0);
+        critical.a_bLock.store(false);
+#else
+        atomic_store(&critical.a_usLockCounter, 0);
+        atomic_store(&critical.a_bLock, false);
+#endif
     }
 
     void TearDown() override {

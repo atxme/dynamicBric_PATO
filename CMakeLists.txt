@@ -68,9 +68,6 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/memory/xMemory.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/xLog/xLog.c
-    ${PROJECT_ROOT}/events/xEvent.c
-    ${PROJECT_ROOT}/events/xEventQueue.c
-    ${PROJECT_ROOT}/events/xEventHandler.c
 )
 
 # Base headers
@@ -86,9 +83,6 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/memory/xMemory.h
     ${PROJECT_ROOT}/timer/xTimer.h
     ${PROJECT_ROOT}/xLog/xLog.h
-    ${PROJECT_ROOT}/events/xEvent.h
-    ${PROJECT_ROOT}/events/xEventQueue.h
-    ${PROJECT_ROOT}/events/xEventHandler.h
 )
 
 # Raspberry Pi specific sources
