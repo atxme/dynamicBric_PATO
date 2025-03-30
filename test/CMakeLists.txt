@@ -31,6 +31,14 @@ if(ENABLE_RASPBERRY)
     pkg_check_modules(GPIOD REQUIRED libgpiod)
 endif()
 
+# Find WolfSSL
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(WOLFSSL wolfssl)
+
+if(NOT WOLFSSL_FOUND)
+    message(WARNING "WolfSSL not found. Will try to use it anyway, but compilation might fail.")
+endif()
+
 project(dynamicBric_PATO_test 
     VERSION 1.0
     LANGUAGES C CXX
@@ -55,7 +63,7 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xOsHorodateur.c
     ${PROJECT_ROOT}/xOs/xOsSemaphore.c
     ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/hash/xHash.c
+    ${PROJECT_ROOT}/crypto/hash/xHash.c
     ${PROJECT_ROOT}/memory/xMemory.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/xLog/xLog.c
@@ -104,11 +112,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_ROOT}/xProtocol
     ${PROJECT_ROOT}/timer
     ${PROJECT_ROOT}/hash
+    ${PROJECT_ROOT}/crypto
     ${PROJECT_ROOT}/memory
     ${PROJECT_ROOT}/xLog
     ${PROJECT_ROOT}/events
     ${GTEST_INCLUDE_DIRS}
     ${GPIOD_INCLUDE_DIRS}
+    ${WOLFSSL_INCLUDE_DIRS}
 )
 
 # Configure definitions based on Raspberry Pi mode
@@ -173,6 +183,7 @@ if(UNIX)
         rt
         ssl
         crypto
+        ${WOLFSSL_LIBRARIES}
         ${GPIOD_LIBRARIES}
     )
 endif()

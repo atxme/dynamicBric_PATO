@@ -16,6 +16,14 @@ if (RPI_VERSION)
     pkg_check_modules(GPIOD REQUIRED libgpiod)
 endif()
 
+# Find WolfSSL
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(WOLFSSL wolfssl)
+
+if(NOT WOLFSSL_FOUND)
+    message(WARNING "WolfSSL not found. Will try to use it anyway, but compilation might fail.")
+endif()
+
 if(POLICY CMP0141)
     cmake_policy(SET CMP0141 NEW)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
@@ -64,7 +72,9 @@ set(BASE_SOURCES
     ${PROJECT_ROOT}/xOs/xOsMutex.c
     ${PROJECT_ROOT}/xOs/xOsHorodateur.c
     ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/hash/xHash.c
+    ${PROJECT_ROOT}/crypto/hash/xHash.c
+    # ${PROJECT_ROOT}/crypto/cipher/xCipherEngine.c
+    # ${PROJECT_ROOT}/crypto/TLS/xTlsEngine.c
     ${PROJECT_ROOT}/memory/xMemory.c
     ${PROJECT_ROOT}/timer/xTimer.c
     ${PROJECT_ROOT}/xLog/xLog.c
@@ -79,7 +89,9 @@ set(BASE_HEADERS
     ${PROJECT_ROOT}/xOs/xOsCritical.h
     ${PROJECT_ROOT}/xOs/xOsMutex.h
     ${PROJECT_ROOT}/xOs/xOsHorodateur.h
-    ${PROJECT_ROOT}/hash/xHash.h
+    ${PROJECT_ROOT}/crypto/hash/xHash.h
+    # ${PROJECT_ROOT}/crypto/cipher/xCipherEngine.h
+    # ${PROJECT_ROOT}/crypto/TLS/xTlsEngine.h
     ${PROJECT_ROOT}/memory/xMemory.h
     ${PROJECT_ROOT}/timer/xTimer.h
     ${PROJECT_ROOT}/xLog/xLog.h
@@ -132,7 +144,9 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/assert
         ${CMAKE_CURRENT_SOURCE_DIR}/xOs
         ${CMAKE_CURRENT_SOURCE_DIR}/xProtocol
+        ${CMAKE_CURRENT_SOURCE_DIR}/crypto
         ${GPIOD_INCLUDE_DIRS}
+        ${WOLFSSL_INCLUDE_DIRS}
 )
 
 # Compiler options
@@ -206,6 +220,7 @@ if(UNIX)
         rt
         ssl
         crypto
+        ${WOLFSSL_LIBRARIES}
         ${GPIOD_LIBRARIES}
     )
 endif()
@@ -231,3 +246,9 @@ message(STATUS "  C++ Standard: 20")
 message(STATUS "  C Standard: 17")
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "  GPIOD Support: ${GPIOD_FOUND}")
+message(STATUS "  WolfSSL Support: ${WOLFSSL_FOUND}")
+
+# Add TLS examples if the directory exists
+# if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/tls/CMakeLists.txt")
+#     add_subdirectory(examples/tls)
+# endif()

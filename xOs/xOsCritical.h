@@ -4,6 +4,7 @@
 //
 // general discloser: copy or share the file is forbidden
 // Written : 14/11/2024
+// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 #pragma once
 
@@ -49,10 +50,10 @@ typedef struct {
     pthread_mutex_t critical; // section critique
 #ifdef __cplusplus
     std::atomic<unsigned short> a_usLockCounter; // compteur de verrous
-    std::atomic<bool> a_bLock;                  // état du verrou
+    std::atomic<bool> a_bLock;                  // ï¿½tat du verrou
 #else
     _Atomic unsigned short a_usLockCounter;     // compteur de verrous
-    _Atomic bool a_bLock;                         // état du verrou
+    _Atomic bool a_bLock;                         // ï¿½tat du verrou
 #endif
 } t_osCriticalCtx;
 

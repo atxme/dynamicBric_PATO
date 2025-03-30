@@ -1,9 +1,10 @@
 ////////////////////////////////////////////////////////////
 //  mutex header file
-//  defines the mutex types and constants
+//  defines the mutex structure and related functions
 //
 // general discloser: copy or share the file is forbidden
 // Written : 14/11/2024
+// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 #pragma once
 

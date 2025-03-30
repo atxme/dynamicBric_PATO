@@ -1,9 +1,10 @@
 ////////////////////////////////////////////////////////////
 //  horodateur header file
-//  defines timestamp types and functions
+//  defines horodateur functions for timestamp
 //
 // general discloser: copy or share the file is forbidden
-// Written : 12/01/2025
+// Written : 14/11/2024
+// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 #pragma once
 
