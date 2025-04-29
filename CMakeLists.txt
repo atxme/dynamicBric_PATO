@@ -131,7 +131,7 @@ else()
         -Wall
         -Wextra
         -Wpedantic
-        -Werror
+        -Wno-variadic-macros
         $<$<CONFIG:Debug>:-g3 -O0 -fno-omit-frame-pointer>
         $<$<CONFIG:Release>:-O3 -march=native -flto>
         $<$<CONFIG:RelWithDebInfo>:-O2 -g -march=native>

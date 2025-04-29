@@ -29,8 +29,8 @@
 #define OS_TASK_STATUS_TERMINATED  4UL
 
 // Codes de sortie de tâche
-#define OS_TASK_EXIT_SUCCESS 0UL
-#define OS_TASK_EXIT_FAILURE -1UL
+#define OS_TASK_EXIT_SUCCESS 0L
+#define OS_TASK_EXIT_FAILURE -1L
 
 typedef enum {
     OS_SCHED_NORMAL = 0,  // SCHED_OTHER - Ordonnancement standard
