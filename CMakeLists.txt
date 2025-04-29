@@ -69,9 +69,19 @@ foreach(SOURCE_FILE ${ALL_C_SOURCES} ${ALL_CPP_SOURCES})
         continue()
     endif()
     
+    # Skip CMake compiler identification files
+    if(SOURCE_FILE MATCHES ".*CMakeCCompilerId\\.c$|.*CMakeCXXCompilerId\\.cpp$")
+        continue()
+    endif()
+    
     # Check if this is a TLS-related file
-    if(SOURCE_FILE MATCHES ".*/crypto/TLS/.*|.*/crypto/cipher/.*")
+    if(SOURCE_FILE MATCHES ".*/tls/.*|.*/crypto/TLS/.*|.*/crypto/cipher/.*")
         list(APPEND TLS_SOURCES ${SOURCE_FILE})
+    elseif(SOURCE_FILE MATCHES ".*/network/xNetwork\\.c$")
+        # Standard network implementation (only include when TLS is disabled)
+        if(NOT USE_TLS)
+            list(APPEND NON_TLS_SOURCES ${SOURCE_FILE})
+        endif()
     else()
         list(APPEND NON_TLS_SOURCES ${SOURCE_FILE})
     endif()

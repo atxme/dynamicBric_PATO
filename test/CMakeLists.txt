@@ -7,36 +7,21 @@ set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 set(CMAKE_CONFIGURATION_TYPES Release CACHE STRING "Configuration types" FORCE)
 
-# Détection automatique de la Raspberry Pi
-if(EXISTS "/sys/firmware/devicetree/base/model")
-    file(READ "/sys/firmware/devicetree/base/model" DEVICE_MODEL)
-    if(DEVICE_MODEL MATCHES "Raspberry Pi")
-        set(ENABLE_RASPBERRY ON)
-        # Détection de la version
-        if(DEVICE_MODEL MATCHES "Raspberry Pi 5")
-            set(RPI_VERSION 5)
-        else()
-            set(RPI_VERSION 4)
-        endif()
-    else()
-        set(ENABLE_RASPBERRY OFF)
-    endif()
-else()
-    set(ENABLE_RASPBERRY OFF)
-endif()
+# Option to enable TLS support
+option(USE_TLS "Enable TLS support (requires WolfSSL)" OFF)
 
-# Required for libgpiod if on Raspberry Pi
-if(ENABLE_RASPBERRY)
+# Find WolfSSL if TLS is enabled
+if(USE_TLS)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GPIOD REQUIRED libgpiod)
-endif()
-
-# Find WolfSSL
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(WOLFSSL wolfssl)
-
-if(NOT WOLFSSL_FOUND)
-    message(WARNING "WolfSSL not found. Will try to use it anyway, but compilation might fail.")
+    pkg_check_modules(WOLFSSL wolfssl)
+    
+    if(NOT WOLFSSL_FOUND)
+        message(FATAL_ERROR "USE_TLS is enabled but WolfSSL was not found. Please install WolfSSL or disable USE_TLS.")
+    endif()
+    
+    message(STATUS "TLS support enabled, using WolfSSL")
+else()
+    message(STATUS "TLS support disabled")
 endif()
 
 project(dynamicBric_PATO_test 
@@ -52,84 +37,99 @@ enable_testing()
 # Force absolute path
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 
-# Base sources (always included)
-set(BASE_SOURCES
-    ${PROJECT_ROOT}/dynamicBric_PATO.cpp
-    ${PROJECT_ROOT}/network/xNetwork.c
-    ${PROJECT_ROOT}/assert/xAssert.c
-    ${PROJECT_ROOT}/xOs/xTask.c
-    ${PROJECT_ROOT}/xOs/xOsCritical.c
-    ${PROJECT_ROOT}/xOs/xOsMutex.c
-    ${PROJECT_ROOT}/xOs/xOsHorodateur.c
-    ${PROJECT_ROOT}/xOs/xOsSemaphore.c
-    ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/crypto/hash/xHash.c
-    ${PROJECT_ROOT}/memory/xMemory.c
-    ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/xLog/xLog.c
-)
+# Recursively find all source files
+file(GLOB_RECURSE ALL_C_SOURCES "${PROJECT_ROOT}/*.c")
+file(GLOB_RECURSE ALL_CPP_SOURCES "${PROJECT_ROOT}/*.cpp")
+file(GLOB_RECURSE ALL_HEADERS "${PROJECT_ROOT}/*.h")
 
-# Raspberry Pi specific sources
-set(RASPBERRY_SOURCES
-    ${PROJECT_ROOT}/xProtocol/xUart.c
-    ${PROJECT_ROOT}/xProtocol/xSpi.c
-    ${PROJECT_ROOT}/xProtocol/xGpio.c
-    ${PROJECT_ROOT}/xProtocol/xI2c.c
-    ${PROJECT_ROOT}/xProtocol/xPwm.c
-)
+# Create lists for different types of source files
+set(TLS_SOURCES "")
+set(NON_TLS_SOURCES "")
+set(TEST_CPP_SOURCES "")
 
-# Test sources
-set(TEST_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_assert.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_critical.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_horodateur.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_log.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_memory.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_mutex.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_network.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_tasks.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_timer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_semaphores.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
-)
+# Filter source files based on their paths
+foreach(SOURCE_FILE ${ALL_C_SOURCES} ${ALL_CPP_SOURCES})
+    # Skip external/vendor directories if they exist
+    if(SOURCE_FILE MATCHES ".*/vendor/.*|.*/external/.*")
+        continue()
+    endif()
+    
+    # Process test files
+    if(SOURCE_FILE MATCHES ".*/test/.*")
+        # Include only test files from current directory for compilation
+        if(SOURCE_FILE MATCHES "${CMAKE_CURRENT_SOURCE_DIR}/.*.cpp$")
+            list(APPEND TEST_CPP_SOURCES ${SOURCE_FILE})
+        endif()
+        # Skip other test directories
+        continue()
+    endif()
+    
+    # Skip Raspberry Pi specific code
+    if(SOURCE_FILE MATCHES ".*/xProtocol/.*")
+        continue()
+    endif()
+    
+    # Skip CMake compiler identification files
+    if(SOURCE_FILE MATCHES ".*CMakeCCompilerId\\.c$|.*CMakeCXXCompilerId\\.cpp$")
+        continue()
+    endif()
+    
+    # Categorize TLS and non-TLS files
+    if(SOURCE_FILE MATCHES ".*/tls/.*|.*/crypto/TLS/.*|.*/crypto/cipher/.*")
+        list(APPEND TLS_SOURCES ${SOURCE_FILE})
+    elseif(SOURCE_FILE MATCHES ".*/network/xNetwork\\.c$")
+        # Standard network implementation (only include when TLS is disabled)
+        if(NOT USE_TLS)
+            list(APPEND NON_TLS_SOURCES ${SOURCE_FILE})
+        endif()
+    else()
+        list(APPEND NON_TLS_SOURCES ${SOURCE_FILE})
+    endif()
+endforeach()
 
-# Configure sources based on Raspberry Pi mode
-if(ENABLE_RASPBERRY)
-    set(SOURCES ${BASE_SOURCES} ${RASPBERRY_SOURCES} ${TEST_SOURCES})
+# Set up final sources list based on USE_TLS
+if(USE_TLS)
+    set(SOURCES ${NON_TLS_SOURCES} ${TLS_SOURCES} ${TEST_CPP_SOURCES})
+    add_compile_definitions(USE_TLS)
 else()
-    set(SOURCES ${BASE_SOURCES} ${TEST_SOURCES})
+    set(SOURCES ${NON_TLS_SOURCES} ${TEST_CPP_SOURCES})
 endif()
 
-# Création de l'exécutable de test
+# Print source files information for debugging
+list(LENGTH SOURCES SOURCE_COUNT)
+list(LENGTH TLS_SOURCES TLS_SOURCE_COUNT)
+list(LENGTH TEST_CPP_SOURCES TEST_COUNT)
+message(STATUS "Found ${SOURCE_COUNT} total source files")
+message(STATUS "TLS source files: ${TLS_SOURCE_COUNT}")
+message(STATUS "Test source files: ${TEST_COUNT}")
+
+# Create the test executable
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-# Configuration des includes
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${PROJECT_ROOT}
-    ${PROJECT_ROOT}/network
-    ${PROJECT_ROOT}/assert
-    ${PROJECT_ROOT}/xOs
-    ${PROJECT_ROOT}/xProtocol
-    ${PROJECT_ROOT}/timer
-    ${PROJECT_ROOT}/hash
-    ${PROJECT_ROOT}/crypto
-    ${PROJECT_ROOT}/memory
-    ${PROJECT_ROOT}/xLog
-    ${PROJECT_ROOT}/events
-    ${GTEST_INCLUDE_DIRS}
-    ${GPIOD_INCLUDE_DIRS}
-    ${WOLFSSL_INCLUDE_DIRS}
-)
+# Add include directories (recursively find all directories)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_ROOT})
 
-# Configure definitions based on Raspberry Pi mode
-if(ENABLE_RASPBERRY)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE 
-        _RASPBERRY
-        RPI_${RPI_VERSION}
-    )
+# Find all directories in the project and add them as include directories
+file(GLOB_RECURSE ALL_DIRS LIST_DIRECTORIES true "${PROJECT_ROOT}/*")
+foreach(DIR ${ALL_DIRS})
+    if(IS_DIRECTORY "${DIR}" AND 
+       NOT DIR MATCHES ".*/test/.*" AND 
+       NOT DIR MATCHES ".*/xProtocol/.*" AND
+       NOT DIR MATCHES ".*/vendor/.*" AND
+       NOT DIR MATCHES ".*/external/.*")
+        target_include_directories(${PROJECT_NAME} PRIVATE "${DIR}")
+    endif()
+endforeach()
+
+# Include GTest directories
+target_include_directories(${PROJECT_NAME} PRIVATE ${GTEST_INCLUDE_DIRS})
+
+# Include WolfSSL directories if TLS is enabled
+if(USE_TLS)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${WOLFSSL_INCLUDE_DIRS})
 endif()
 
-# Options de compilation
+# Compiler options
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE
         /W4
@@ -146,6 +146,7 @@ else()
         -O3 
         -march=native 
         -flto
+        -Wno-variadic-macros
         -Wno-unused-parameter
         -Wno-unused-variable
         -Wno-unused-function
@@ -156,7 +157,7 @@ else()
     target_link_options(${PROJECT_NAME} PRIVATE -flto)
 endif()
 
-# Configuration C/C++ standards
+# C and C++ standards
 set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD 17
     C_STANDARD_REQUIRED ON
@@ -166,44 +167,44 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
-# Définitions de compilation
+# Compilation definitions
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     NDEBUG
     _POSIX_C_SOURCE=200809L
     _GNU_SOURCE
     _XOPEN_SOURCE=700
+    UNIT_TESTING  # Add this to enable any test-specific code
 )
 
-# Liaison avec les bibliothèques
+# Libraries
 if(UNIX)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    # Base libraries
+    set(UNIX_LIBS 
         GTest::GTest
         GTest::Main
         pthread
         rt
-        ssl
-        crypto
-        ${WOLFSSL_LIBRARIES}
-        ${GPIOD_LIBRARIES}
     )
+    
+    # Add WolfSSL library if TLS is enabled
+    if(USE_TLS)
+        list(APPEND UNIX_LIBS ${WOLFSSL_LIBRARIES} ssl crypto)
+    endif()
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${UNIX_LIBS})
 endif()
 
-# Configuration des tests
+# Configure GTest
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})
 
-# Messages de debug
-message(STATUS "Device detection:")
-message(STATUS "  Raspberry Pi: ${ENABLE_RASPBERRY}")
-if(ENABLE_RASPBERRY)
-    message(STATUS "  Model: ${DEVICE_MODEL}")
-    message(STATUS "  Version: ${RPI_VERSION}")
-endif()
-message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "Test Sources: ${TEST_SOURCES}")
-message(STATUS "Base Sources: ${BASE_SOURCES}")
-if(ENABLE_RASPBERRY)
-    message(STATUS "Raspberry Sources: ${RASPBERRY_SOURCES}")
-    message(STATUS "GPIOD Include Dirs: ${GPIOD_INCLUDE_DIRS}")
-    message(STATUS "GPIOD Libraries: ${GPIOD_LIBRARIES}")
+# Configuration summary
+message(STATUS "Configuration Summary:")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  TLS Support: ${USE_TLS}")
+message(STATUS "  C++ Standard: 20")
+message(STATUS "  C Standard: 17")
+if(USE_TLS)
+    message(STATUS "  WolfSSL Include Dirs: ${WOLFSSL_INCLUDE_DIRS}")
+    message(STATUS "  WolfSSL Libraries: ${WOLFSSL_LIBRARIES}")
 endif()

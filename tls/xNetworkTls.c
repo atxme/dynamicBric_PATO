@@ -11,6 +11,9 @@
 
 #include "xNetworkTls.h"
 
+// N'inclure ce fichier que si USE_TLS est défini
+#ifdef USE_TLS
+
 //////////////////////////////////
 /// Core API Implementation
 //////////////////////////////////
@@ -556,3 +559,5 @@ int networkGetSecurityInfo(NetworkSocket *p_pSocket, char *p_pCipherName, unsign
     
     return tlsEngineGetConnectionInfo((TLS_Engine*)p_pSocket->t_pTlsEngine, p_pCipherName, p_ulSize);
 }
+
+#endif

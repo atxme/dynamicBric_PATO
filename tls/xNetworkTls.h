@@ -30,6 +30,9 @@
 #include "xOsMutex.h"
 #include "xLog.h"
 
+// Enable include guard to avoid double inclusion
+#ifdef USE_TLS
+
 // Configuration constants
 #define NETWORK_MAX_SOCKETS 16        // Maximum number of simultaneous sockets
 #define NETWORK_BUFFER_SIZE 512       // Default buffer size for operations
@@ -196,4 +199,5 @@ bool networkIsConnected(NetworkSocket *p_pSocket);
 /// @return int Error code
 //////////////////////////////////
 int networkGetSecurityInfo(NetworkSocket *p_pSocket, char *p_pCipherName, unsigned long p_ulSize);
+
 #endif // NETWORK_CORE_H_

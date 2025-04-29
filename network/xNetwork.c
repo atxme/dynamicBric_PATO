@@ -14,7 +14,9 @@
 /// Core API Implementation
 //////////////////////////////////
 
-// Create a socket
+//////////////////////////////////
+/// networkCreateSocket
+//////////////////////////////////
 NetworkSocket *networkCreateSocket(int p_iType)
 {
     // Allocate a new socket structure
@@ -47,7 +49,9 @@ NetworkSocket *networkCreateSocket(int p_iType)
     return l_pSocket;
 }
 
-// Create network address
+//////////////////////////////////
+/// networkMakeAddress
+//////////////////////////////////
 NetworkAddress networkMakeAddress(const char *p_pcAddress, unsigned short p_usPort)
 {
     NetworkAddress l_tAddress;
@@ -76,7 +80,9 @@ NetworkAddress networkMakeAddress(const char *p_pcAddress, unsigned short p_usPo
     return l_tAddress;
 }
 
-// Bind socket to address
+//////////////////////////////////
+/// networkBind
+//////////////////////////////////
 int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 {
     // Check pointers
@@ -107,7 +113,9 @@ int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     return NETWORK_OK;
 }
 
-// Listen for connections
+//////////////////////////////////
+/// networkListen
+//////////////////////////////////
 int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -121,7 +129,9 @@ int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
     return NETWORK_OK;
 }
 
-// Accept a connection
+//////////////////////////////////
+/// networkAccept
+//////////////////////////////////
 NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClientAddress)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0) {
@@ -170,7 +180,9 @@ NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClient
     return l_pClientSocket;
 }
 
-// Connect to server
+//////////////////////////////////
+/// networkConnect
+//////////////////////////////////
 int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -199,7 +211,9 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     return NETWORK_OK;
 }
 
-// Send data
+//////////////////////////////////
+/// networkSend
+//////////////////////////////////
 int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
@@ -231,7 +245,9 @@ int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p
     return result;
 }
 
-// Receive data
+//////////////////////////////////
+/// networkReceive
+//////////////////////////////////
 int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
@@ -265,7 +281,9 @@ int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ul
     return result;
 }
 
-// Close socket
+//////////////////////////////////
+/// networkCloseSocket
+//////////////////////////////////
 int networkCloseSocket(NetworkSocket *p_pSocket)
 {
     if (!p_pSocket)
@@ -288,7 +306,9 @@ int networkCloseSocket(NetworkSocket *p_pSocket)
     return NETWORK_OK;
 }
 
-// Set socket timeout
+//////////////////////////////////
+/// networkSetTimeout
+//////////////////////////////////
 int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTimeout)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -306,7 +326,9 @@ int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTi
     return NETWORK_OK;
 }
 
-// Wait for activity on socket
+//////////////////////////////////
+/// networkWaitForActivity
+//////////////////////////////////
 int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -335,7 +357,9 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
     return 1;
 }
 
-// Get error string
+//////////////////////////////////
+/// networkGetErrorString
+//////////////////////////////////
 const char *networkGetErrorString(int p_iError)
 {
     switch (p_iError) {
@@ -352,7 +376,9 @@ const char *networkGetErrorString(int p_iError)
     }
 }
 
-// Check if socket is connected
+//////////////////////////////////
+/// networkIsConnected
+//////////////////////////////////
 bool networkIsConnected(NetworkSocket *p_pSocket)
 {
     if (!p_pSocket)
