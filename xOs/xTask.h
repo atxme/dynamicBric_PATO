@@ -4,7 +4,6 @@
 //
 // general discloser: copy or share the file is forbidden
 // Written : 14/11/2024
-// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 
 #pragma once
@@ -30,8 +29,8 @@
 #define OS_TASK_STATUS_TERMINATED  4UL
 
 // Codes de sortie de tâche
-#define OS_TASK_EXIT_SUCCESS 0
-#define OS_TASK_EXIT_FAILURE -1
+#define OS_TASK_EXIT_SUCCESS 0UL
+#define OS_TASK_EXIT_FAILURE -1UL
 
 typedef enum {
     OS_SCHED_NORMAL = 0,  // SCHED_OTHER - Ordonnancement standard
@@ -77,18 +76,6 @@ typedef struct {
 } t_TaskCtx;
 
 //////////////////////////////////
-/// @brief Initialize a task context with default values
-/// @param p_pttOSTask : pointer to the task structure context to initialize
-/// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
-///
-/// @note This function sets default values for the task context:
-///       - Default stack size
-///       - Default priority
-///       - Default scheduling policy
-//////////////////////////////////
-int osTaskInit(t_TaskCtx* p_pttOSTask);
-
-//////////////////////////////////
 /// @brief Create a task
 /// @param p_pttOSTask : pointer to the task structure context
 /// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
@@ -107,18 +94,10 @@ int osTaskCreate(t_TaskCtx* p_pttOSTask);
 int osTaskEnd(t_TaskCtx* p_pttOSTask);
 
 //////////////////////////////////
-/// @brief Get the status of a task
+/// @brief Suspend a task
 /// @param p_pttOSTask : pointer to the task structure context
-/// @return Current task status or OS_TASK_ERROR on error
-//////////////////////////////////
-int osTaskGetStatus(t_TaskCtx* p_pttOSTask);
-
-//////////////////////////////////
-/// @brief Wait for a task to complete
-/// @param p_pttOSTask : pointer to the task structure context
-/// @param p_pvExitValue : pointer to store the exit value (can be NULL)
 /// @return OS_TASK_SUCCESS if success, OS_TASK_ERROR otherwise
 //////////////////////////////////
-int osTaskWait(t_TaskCtx* p_pttOSTask, void** p_pvExitValue);
+int osTaskGetExitCode(t_TaskCtx* p_pttOSTask);      //this function will be deleted don't use it 
 
 #endif // OS_TASK_H_

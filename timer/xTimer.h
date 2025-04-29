@@ -4,7 +4,6 @@
 //
 // general discloser: copy or share the file is forbidden
 // Written : 12/01/2025
-// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 #pragma once
 

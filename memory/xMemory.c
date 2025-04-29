@@ -8,12 +8,11 @@
 // - Fonction xMemCorrupt() en mode DEBUG pour simuler la corruption du bloc
 //
 // Written : 12/01/2025
-// Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 
 #include "xMemory.h"
 #include "xAssert.h"
-#include "crypto/hash/xHash.h"
+#include "hash/xHash.h"
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>  // Ajouté pour la synchronisation

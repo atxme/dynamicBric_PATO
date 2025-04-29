@@ -6,22 +6,21 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of build,
 
 set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
 
-# Option to enable/disable Raspberry Pi mode and version
-option(ENABLE_RASPBERRY "Enable Raspberry Pi specific code" ON)
-option(RPI_VERSION "Raspberry Pi Version (4 or 5)" 4)
+# Option to enable TLS support
+option(USE_TLS "Enable TLS support (requires WolfSSL)" OFF)
 
-# Required for libgpiod
-if (RPI_VERSION)
+# Find WolfSSL if TLS is enabled
+if(USE_TLS)
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GPIOD REQUIRED libgpiod)
-endif()
-
-# Find WolfSSL
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(WOLFSSL wolfssl)
-
-if(NOT WOLFSSL_FOUND)
-    message(WARNING "WolfSSL not found. Will try to use it anyway, but compilation might fail.")
+    pkg_check_modules(WOLFSSL wolfssl)
+    
+    if(NOT WOLFSSL_FOUND)
+        message(FATAL_ERROR "USE_TLS is enabled but WolfSSL was not found. Please install WolfSSL or disable USE_TLS.")
+    endif()
+    
+    message(STATUS "TLS support enabled, using WolfSSL")
+else()
+    message(STATUS "TLS support disabled")
 endif()
 
 if(POLICY CMP0141)
@@ -34,14 +33,6 @@ project(dynamicBric_PATO
     LANGUAGES C CXX
     DESCRIPTION "Dynamic Bric PATO Library"
 )
-
-# Debug paths and configuration
-message(STATUS "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
-message(STATUS "Raspberry Pi mode: ${ENABLE_RASPBERRY}")
-message(STATUS "Raspberry Pi version: ${RPI_VERSION}")
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "GPIOD Include Dirs: ${GPIOD_INCLUDE_DIRS}")
-message(STATUS "GPIOD Libraries: ${GPIOD_LIBRARIES}")
 
 # Debug configuration
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3 -O0")
@@ -62,92 +53,62 @@ set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -Os -DNDEBUG")
 # Force absolute path
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
-# Define base sources (always included)
-set(BASE_SOURCES
-    ${PROJECT_ROOT}/dynamicBric_PATO.cpp
-    ${PROJECT_ROOT}/network/xNetwork.c
-    ${PROJECT_ROOT}/assert/xAssert.c
-    ${PROJECT_ROOT}/xOs/xTask.c
-    ${PROJECT_ROOT}/xOs/xOsCritical.c
-    ${PROJECT_ROOT}/xOs/xOsMutex.c
-    ${PROJECT_ROOT}/xOs/xOsHorodateur.c
-    ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/crypto/hash/xHash.c
-    # ${PROJECT_ROOT}/crypto/cipher/xCipherEngine.c
-    # ${PROJECT_ROOT}/crypto/TLS/xTlsEngine.c
-    ${PROJECT_ROOT}/memory/xMemory.c
-    ${PROJECT_ROOT}/timer/xTimer.c
-    ${PROJECT_ROOT}/xLog/xLog.c
-)
+# Recursively find all source files, excluding test directories
+file(GLOB_RECURSE ALL_C_SOURCES "${PROJECT_ROOT}/*.c")
+file(GLOB_RECURSE ALL_CPP_SOURCES "${PROJECT_ROOT}/*.cpp")
+file(GLOB_RECURSE ALL_HEADERS "${PROJECT_ROOT}/*.h")
 
-# Base headers
-set(BASE_HEADERS
-    ${PROJECT_ROOT}/dynamicBric_PATO.h
-    ${PROJECT_ROOT}/network/xNetwork.h
-    ${PROJECT_ROOT}/assert/xAssert.h
-    ${PROJECT_ROOT}/xOs/xTask.h
-    ${PROJECT_ROOT}/xOs/xOsCritical.h
-    ${PROJECT_ROOT}/xOs/xOsMutex.h
-    ${PROJECT_ROOT}/xOs/xOsHorodateur.h
-    ${PROJECT_ROOT}/crypto/hash/xHash.h
-    # ${PROJECT_ROOT}/crypto/cipher/xCipherEngine.h
-    # ${PROJECT_ROOT}/crypto/TLS/xTlsEngine.h
-    ${PROJECT_ROOT}/memory/xMemory.h
-    ${PROJECT_ROOT}/timer/xTimer.h
-    ${PROJECT_ROOT}/xLog/xLog.h
-)
+# Create lists for TLS-specific files
+set(TLS_SOURCES "")
+set(NON_TLS_SOURCES "")
 
-# Raspberry Pi specific sources
-set(RASPBERRY_SOURCES
-    ${PROJECT_ROOT}/xProtocol/xUart.c
-    ${PROJECT_ROOT}/xProtocol/xSpi.c
-    ${PROJECT_ROOT}/xProtocol/xGpio.c
-    ${PROJECT_ROOT}/xProtocol/xI2c.c
-    ${PROJECT_ROOT}/xProtocol/xPwm.c
-)
+# Filter out test files and separate TLS files
+foreach(SOURCE_FILE ${ALL_C_SOURCES} ${ALL_CPP_SOURCES})
+    # Skip test files
+    if(SOURCE_FILE MATCHES ".*test.*")
+        continue()
+    endif()
+    
+    # Check if this is a TLS-related file
+    if(SOURCE_FILE MATCHES ".*/crypto/TLS/.*|.*/crypto/cipher/.*")
+        list(APPEND TLS_SOURCES ${SOURCE_FILE})
+    else()
+        list(APPEND NON_TLS_SOURCES ${SOURCE_FILE})
+    endif()
+endforeach()
 
-# Raspberry Pi specific headers
-set(RASPBERRY_HEADERS
-    ${PROJECT_ROOT}/xProtocol/xUart.h
-    ${PROJECT_ROOT}/xProtocol/xSpi.h
-    ${PROJECT_ROOT}/xProtocol/xGpio.h
-    ${PROJECT_ROOT}/xProtocol/xI2c.h
-    ${PROJECT_ROOT}/xProtocol/xPwm.h
-)
-
-# Configure sources based on Raspberry Pi mode
-if(ENABLE_RASPBERRY)
-    set(SOURCES ${BASE_SOURCES} ${RASPBERRY_SOURCES})
-    set(HEADERS ${BASE_HEADERS} ${RASPBERRY_HEADERS})
+# Set up final sources list based on USE_TLS
+if(USE_TLS)
+    set(SOURCES ${NON_TLS_SOURCES} ${TLS_SOURCES})
+    add_compile_definitions(USE_TLS)
 else()
-    set(SOURCES ${BASE_SOURCES})
-    set(HEADERS ${BASE_HEADERS})
+    set(SOURCES ${NON_TLS_SOURCES})
 endif()
+
+# Print source files for debugging
+list(LENGTH SOURCES SOURCE_COUNT)
+list(LENGTH TLS_SOURCES TLS_SOURCE_COUNT)
+message(STATUS "Found ${SOURCE_COUNT} source files")
+message(STATUS "TLS source files: ${TLS_SOURCE_COUNT}")
 
 # Create library
-add_library(${PROJECT_NAME} SHARED ${SOURCES} ${HEADERS})
+add_library(${PROJECT_NAME} SHARED ${SOURCES} ${ALL_HEADERS})
 
-# Configure definitions based on Raspberry Pi mode
-if(ENABLE_RASPBERRY)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE 
-        _RASPBERRY
-        RPI_${RPI_VERSION}
-    )
+# Add include directories (the root and all subdirectories except test directories)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Find all directories in the project
+file(GLOB_RECURSE ALL_DIRS LIST_DIRECTORIES true "${PROJECT_ROOT}/*")
+foreach(DIR ${ALL_DIRS})
+    if(IS_DIRECTORY "${DIR}" AND NOT DIR MATCHES ".*test.*")
+        target_include_directories(${PROJECT_NAME} PRIVATE "${DIR}")
+    endif()
+endforeach()
+
+# Include WolfSSL directories if TLS is enabled
+if(USE_TLS)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${WOLFSSL_INCLUDE_DIRS})
 endif()
-
-# Adjust include paths
-target_include_directories(${PROJECT_NAME}
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/network
-        ${CMAKE_CURRENT_SOURCE_DIR}/assert
-        ${CMAKE_CURRENT_SOURCE_DIR}/xOs
-        ${CMAKE_CURRENT_SOURCE_DIR}/xProtocol
-        ${CMAKE_CURRENT_SOURCE_DIR}/crypto
-        ${GPIOD_INCLUDE_DIRS}
-        ${WOLFSSL_INCLUDE_DIRS}
-)
 
 # Compiler options
 if(MSVC)
@@ -215,14 +176,16 @@ if(UNIX)
         _GNU_SOURCE
         _XOPEN_SOURCE=700
     )
-    target_link_libraries(${PROJECT_NAME} PRIVATE 
-        pthread 
-        rt
-        ssl
-        crypto
-        ${WOLFSSL_LIBRARIES}
-        ${GPIOD_LIBRARIES}
-    )
+    
+    # Base libraries
+    set(UNIX_LIBS pthread rt)
+    
+    # Add WolfSSL library if TLS is enabled
+    if(USE_TLS)
+        list(APPEND UNIX_LIBS ${WOLFSSL_LIBRARIES} ssl crypto)
+    endif()
+    
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${UNIX_LIBS})
 endif()
 
 # Installation
@@ -233,22 +196,25 @@ install(TARGETS ${PROJECT_NAME}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES ${HEADERS}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-)
+# Install headers
+foreach(HEADER ${ALL_HEADERS})
+    # Skip test headers
+    if(NOT HEADER MATCHES ".*test.*")
+        file(RELATIVE_PATH REL_PATH ${PROJECT_ROOT} ${HEADER})
+        get_filename_component(INSTALL_DIR ${REL_PATH} DIRECTORY)
+        install(FILES ${HEADER} 
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${INSTALL_DIR})
+    endif()
+endforeach()
 
 # Output configuration summary
 message(STATUS "Configuration Summary:")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  Raspberry Pi Support: ${ENABLE_RASPBERRY}")
-message(STATUS "  Raspberry Pi Version: ${RPI_VERSION}")
+message(STATUS "  TLS Support: ${USE_TLS}")
 message(STATUS "  C++ Standard: 20")
 message(STATUS "  C Standard: 17")
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "  GPIOD Support: ${GPIOD_FOUND}")
-message(STATUS "  WolfSSL Support: ${WOLFSSL_FOUND}")
-
-# Add TLS examples if the directory exists
-# if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/tls/CMakeLists.txt")
-#     add_subdirectory(examples/tls)
-# endif()
+if(USE_TLS)
+    message(STATUS "  WolfSSL Include Dirs: ${WOLFSSL_INCLUDE_DIRS}")
+    message(STATUS "  WolfSSL Libraries: ${WOLFSSL_LIBRARIES}")
+endif()
