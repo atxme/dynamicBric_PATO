@@ -103,6 +103,13 @@ message(STATUS "Found ${SOURCE_COUNT} total source files")
 message(STATUS "TLS source files: ${TLS_SOURCE_COUNT}")
 message(STATUS "Test source files: ${TEST_COUNT}")
 
+# Print detailed source file list
+message(STATUS "=== Test files to be compiled ===")
+foreach(SOURCE_FILE ${SOURCES})
+    message(STATUS "  + ${SOURCE_FILE}")
+endforeach()
+message(STATUS "=== End of test file list ===")
+
 # Create the test executable
 add_executable(${PROJECT_NAME} ${SOURCES})
 

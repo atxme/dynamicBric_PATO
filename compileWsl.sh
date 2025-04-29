@@ -23,7 +23,7 @@ BUILD_PATH="$PROJECT_PATH/$BUILD_DIR"
 # Build options
 CMAKE_GENERATOR="Ninja"
 BUILD_TYPE="Release"  # Possible values: Debug, Release, RelWithDebInfo, MinSizeRel
-ENABLE_TLS=OFF  # Set to ON to build with TLS support
+ENABLE_TLS=ON  # Set to ON to build with TLS support
 
 # Print header
 print_header() {

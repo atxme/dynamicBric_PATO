@@ -8,8 +8,8 @@
 // Modified: 22/04/2025 - Simplified API with mandatory TLS
 ////////////////////////////////////////////////////////////
 
-#ifndef NETWORK_CORE_H_
-#define NETWORK_CORE_H_
+#ifndef NETWORK_TLS_H_  
+#define NETWORK_TLS_H_
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -200,4 +200,6 @@ bool networkIsConnected(NetworkSocket *p_pSocket);
 //////////////////////////////////
 int networkGetSecurityInfo(NetworkSocket *p_pSocket, char *p_pCipherName, unsigned long p_ulSize);
 
-#endif // NETWORK_CORE_H_
+#endif // USE_TLS
+
+#endif // NETWORK_TLS_H_

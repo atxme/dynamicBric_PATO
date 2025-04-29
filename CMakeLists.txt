@@ -101,6 +101,13 @@ list(LENGTH TLS_SOURCES TLS_SOURCE_COUNT)
 message(STATUS "Found ${SOURCE_COUNT} source files")
 message(STATUS "TLS source files: ${TLS_SOURCE_COUNT}")
 
+# Print detailed source file list
+message(STATUS "=== Files to be compiled ===")
+foreach(SOURCE_FILE ${SOURCES})
+    message(STATUS "  + ${SOURCE_FILE}")
+endforeach()
+message(STATUS "=== End of file list ===")
+
 # Create library
 add_library(${PROJECT_NAME} SHARED ${SOURCES} ${ALL_HEADERS})
 
