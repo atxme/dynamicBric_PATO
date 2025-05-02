@@ -16,7 +16,9 @@
 #include <sys/socket.h>
 
 
-// IO callbacks for wolfSSL
+////////////////////////////////////////////////////////////
+/// tlsEngineIORecv
+////////////////////////////////////////////////////////////
 static int tlsEngineIORecv(WOLFSSL* ssl, char* buf, int sz, void* ctx) 
 {
     X_ASSERT(ctx != NULL);
@@ -36,6 +38,9 @@ static int tlsEngineIORecv(WOLFSSL* ssl, char* buf, int sz, void* ctx)
     return recvd;
 }
 
+////////////////////////////////////////////////////////////
+/// tlsEngineIOSend
+////////////////////////////////////////////////////////////
 static int tlsEngineIOSend(WOLFSSL* ssl, char* buf, int sz, void* ctx) 
 {
     X_ASSERT(ctx != NULL);
@@ -56,7 +61,9 @@ static int tlsEngineIOSend(WOLFSSL* ssl, char* buf, int sz, void* ctx)
     return sent;
 }
 
-// Initialize the TLS engine for a socket
+////////////////////////////////////////////////////////////
+/// tlsEngineInit
+////////////////////////////////////////////////////////////
 int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pConfig) 
 {
     X_ASSERT(p_pEngine != NULL);
@@ -234,7 +241,9 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
     return TLS_OK;
 }
 
-// Perform TLS handshake for client connection
+////////////////////////////////////////////////////////////
+/// tlsEngineConnect
+////////////////////////////////////////////////////////////
 int tlsEngineConnect(TLS_Engine* p_pEngine) 
 {
     if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ctx || p_pEngine->socketFd < 0) {
@@ -272,7 +281,9 @@ int tlsEngineConnect(TLS_Engine* p_pEngine)
     return TLS_OK;
 }
 
-// Accept TLS connection as server
+////////////////////////////////////////////////////////////
+/// tlsEngineAccept
+////////////////////////////////////////////////////////////
 int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_pListenEngine) {
     if (!p_pEngine || !p_pListenEngine || !p_pListenEngine->isInitialized || 
         !p_pListenEngine->ctx || p_iSocketFd < 0) {
@@ -340,7 +351,9 @@ int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_
     return TLS_OK;
 }
 
-// Send data over TLS connection
+////////////////////////////////////////////////////////////
+/// tlsEngineSend
+////////////////////////////////////////////////////////////
 int tlsEngineSend(TLS_Engine* p_pEngine, const void* p_pBuffer, unsigned long p_ulSize) {
     if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
         !p_pEngine->isConnected || !p_pBuffer) {
@@ -356,7 +369,9 @@ int tlsEngineSend(TLS_Engine* p_pEngine, const void* p_pBuffer, unsigned long p_
     return sent;
 }
 
-// Receive data over TLS connection
+////////////////////////////////////////////////////////////
+/// tlsEngineReceive
+////////////////////////////////////////////////////////////
 int tlsEngineReceive(TLS_Engine* p_pEngine, void* p_pBuffer, unsigned long p_ulSize) {
     if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
         !p_pEngine->isConnected || !p_pBuffer) {
@@ -376,7 +391,9 @@ int tlsEngineReceive(TLS_Engine* p_pEngine, void* p_pBuffer, unsigned long p_ulS
     return received;
 }
 
-// Close TLS connection
+////////////////////////////////////////////////////////////
+/// tlsEngineClose
+////////////////////////////////////////////////////////////
 int tlsEngineClose(TLS_Engine* p_pEngine) {
     if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl) {
         return TLS_INVALID_PARAM;
@@ -393,7 +410,9 @@ int tlsEngineClose(TLS_Engine* p_pEngine) {
     return TLS_OK;
 }
 
-// Clean up TLS engine resources
+////////////////////////////////////////////////////////////
+/// tlsEngineCleanup
+////////////////////////////////////////////////////////////
 int tlsEngineCleanup(TLS_Engine* p_pEngine) {
     if (!p_pEngine || !p_pEngine->isInitialized) {
         return TLS_INVALID_PARAM;
@@ -423,7 +442,9 @@ int tlsEngineCleanup(TLS_Engine* p_pEngine) {
     return TLS_OK;
 }
 
-// Get last TLS error description
+////////////////////////////////////////////////////////////
+/// tlsEngineGetErrorString
+////////////////////////////////////////////////////////////
 const char* tlsEngineGetErrorString(int p_iError) {
     switch (p_iError) {
         case TLS_OK:
@@ -443,7 +464,9 @@ const char* tlsEngineGetErrorString(int p_iError) {
     }
 }
 
-// Check if TLS is enabled for a socket
+////////////////////////////////////////////////////////////
+/// tlsEngineIsEnabled
+////////////////////////////////////////////////////////////
 bool tlsEngineIsEnabled(const TLS_Engine* p_pEngine) {
     if (!p_pEngine) {
         return false;
@@ -452,7 +475,9 @@ bool tlsEngineIsEnabled(const TLS_Engine* p_pEngine) {
     return p_pEngine->isInitialized;
 }
 
-// Get TLS connection info
+////////////////////////////////////////////////////////////
+/// tlsEngineGetConnectionInfo
+////////////////////////////////////////////////////////////
 int tlsEngineGetConnectionInfo(const TLS_Engine* p_pEngine, char* p_pCipherName, unsigned long p_ulSize) {
     if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
         !p_pEngine->isConnected || !p_pCipherName) {
