@@ -55,7 +55,7 @@ typedef struct {
     const char* caCertPath;    // CA certificate path
     const char* certPath;      // Certificate path
     const char* keyPath;       // Private key path
-    const char* cipherList;    // Cipher list (NULL for defaults)
+    const char* cipherList;    // Cipher list (NULL for defaults) TODO: add cipher list ECDHE and ECDSA and RSA support
     bool isServer;             // True for server, false for client
 } TLS_Config;
 
