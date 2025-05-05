@@ -7,6 +7,7 @@
 // Written : 14/11/2024
 // Modified: 22/04/2025 - Simplified API with mandatory TLS
 ////////////////////////////////////////////////////////////
+#define USE_TLS 1
 
 #ifndef NETWORK_TLS_H_  
 #define NETWORK_TLS_H_
@@ -40,11 +41,11 @@
 #define NETWORK_DEFAULT_TIMEOUT 30000 // Default timeout in milliseconds (30 seconds)
 
 // Network error codes
-#define NETWORK_OK              0
-#define NETWORK_ERROR           -1
-#define NETWORK_TIMEOUT         -2
-#define NETWORK_INVALID_PARAM   -3
-#define NETWORK_TLS_ERROR       -4
+#define NETWORK_OK              0xE8C74D60
+#define NETWORK_ERROR           0xE8C74D61
+#define NETWORK_TIMEOUT         0xE8C74D62
+#define NETWORK_INVALID_PARAM   0xE8C74D63
+#define NETWORK_TLS_ERROR       0xE8C74D64
 
 // Byte order conversion macros
 #define HOST_TO_NET_LONG(p_uiValue) htonl(p_uiValue)
@@ -53,7 +54,7 @@
 #define NET_TO_HOST_SHORT(p_usValue) ntohs(p_usValue)
 
 // Secure Socket type definition
-typedef struct
+typedef struct NetworkSocket_t
 {
     int t_iSocketFd;     // Socket file descriptor
     int t_iType;         // Socket type (TCP/UDP)

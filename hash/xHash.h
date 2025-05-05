@@ -14,9 +14,9 @@
 #include <stddef.h>
 
 // Hash error codes
-#define XOS_HASH_OK           0
-#define XOS_HASH_ERROR       -1
-#define XOS_HASH_INVALID     -2
+#define XOS_HASH_OK           0xA5F12E30
+#define XOS_HASH_ERROR        0xA5F12E31
+#define XOS_HASH_INVALID      0xA5F12E32
 
 // Hash output sizes (in bytes)
 #define XOS_HASH_SHA256_SIZE    32

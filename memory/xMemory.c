@@ -183,7 +183,7 @@ int xMemFree(void* p_ptPtr)
     {
         if (l_ptCurrent->t_ptAddress == p_ptPtr)
         {
-            if (checkBlockIntegrity(l_ptCurrent) != XOS_MEM_OK)
+            if (checkBlockIntegrity(l_ptCurrent) != (int)XOS_MEM_OK)
             {
                 pthread_mutex_unlock(&s_memory_mutex);
                 return XOS_MEM_CORRUPTION;
@@ -241,7 +241,7 @@ int xMemCheck(void)
     xMemoryBlock_t* l_ptCurrent = s_tMemoryManager.t_ptBlocks;
     while (l_ptCurrent != NULL)
     {
-        if (checkBlockIntegrity(l_ptCurrent) != XOS_MEM_OK)
+        if (checkBlockIntegrity(l_ptCurrent) != (int)XOS_MEM_OK)
         {
             pthread_mutex_unlock(&s_memory_mutex);
             return XOS_MEM_CORRUPTION;

@@ -62,6 +62,7 @@
         "xutility": "cpp",
         "xoshorodateur.h": "c",
         "xtask.h": "c",
-        "sha256.h": "c"
+        "sha256.h": "c",
+        "socket.h": "c"
     }
 }

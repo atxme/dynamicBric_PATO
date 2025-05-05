@@ -15,21 +15,35 @@
 #include <stdbool.h>
 
 // Configuration constants
-#define TLS_OK                  0
-#define TLS_ERROR              -1
-#define TLS_INVALID_PARAM      -2
-#define TLS_CERT_ERROR         -3
-#define TLS_CONNECT_ERROR      -4
-#define TLS_VERIFY_ERROR       -5
+#define TLS_OK                  0xF1E92D80
+#define TLS_ERROR               0xF1E92D81
+#define TLS_INVALID_PARAM       0xF1E92D82
+#define TLS_CERT_ERROR          0xF1E92D83
+#define TLS_CONNECT_ERROR       0xF1E92D84
+#define TLS_VERIFY_ERROR        0xF1E92D85
+
+// tls cipher list available for the API
+static const char* s_kptcTlsCipherList [] = 
+{
+    "TLS_CHACHA20_POLY1305_SHA256",
+    "TLS_AES_256_GCM_SHA384",
+    "TLS_AES_128_GCM_SHA256",
+    "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+};
+
+// default tls cipher
+static const char *s_kptcDefaultTlsCipher = "TLS_AES_256_GCM_SHA384";
 
 // TLS versions
-typedef enum {
+typedef enum 
+{
     TLS_VERSION_1_2 = 0,
     TLS_VERSION_1_3 = 1  // Default and recommended
 } TLS_Version;
 
 // ECC Curve types
-typedef enum {
+typedef enum 
+{
     TLS_ECC_SECP256R1 = 0,  // NIST P-256
     TLS_ECC_SECP384R1 = 1,  // NIST P-384
     TLS_ECC_SECP521R1 = 2,  // NIST P-521
@@ -37,26 +51,28 @@ typedef enum {
 } TLS_ECC_Curve;
 
 // TLS Engine context
-typedef struct {
-    WOLFSSL_CTX* ctx;          // wolfSSL context
-    WOLFSSL* ssl;              // wolfSSL session
-    int socketFd;              // Socket file descriptor
-    bool isInitialized;        // Initialization state
-    bool isConnected;          // Connection state
-    TLS_Version version;       // TLS version
-    TLS_ECC_Curve eccCurve;    // ECC curve type
+typedef struct 
+{
+    WOLFSSL_CTX* t_CipherCtx;   // wolfSSL context
+    WOLFSSL* t_SslSession;      // wolfSSL session
+    int t_iSocketFd;               // Socket file descriptor
+    bool t_bInitialised;        // Initialization state
+    bool t_bIsConnected;           // Connection state
+    TLS_Version t_eTlsVersion;        // TLS version
+    TLS_ECC_Curve t_eEccCurve;     // ECC curve type
 } TLS_Engine;
 
 // TLS configuration structure
 typedef struct {
-    TLS_Version version;       // TLS version to use
-    TLS_ECC_Curve eccCurve;    // ECC curve to use
-    bool verifyPeer;           // Verify peer certificate
-    const char* caCertPath;    // CA certificate path
-    const char* certPath;      // Certificate path
-    const char* keyPath;       // Private key path
+    TLS_Version t_eTlsVersion;  // TLS version to use
+    TLS_ECC_Curve t_eEccCurve;     // ECC curve to use
+    bool t_bVerifyPeer;           // Verify peer certificate
+    const char* t_cCaPath;    // CA certificate path
+    const char* t_cCertPath;      // Certificate path
+    const char* t_cKeyPath;       // Private key path
     const char* cipherList;    // Cipher list (NULL for defaults) TODO: add cipher list ECDHE and ECDSA and RSA support
-    bool isServer;             // True for server, false for client
+    bool t_bIsServer;             // True for server, false for client
+    bool t_bLoadEcdsaCipher;   // True to load ECDSA cipher and set the ecc key as ECDSA instead of ecdh
 } TLS_Config;
 
 //////////////////////////////////
@@ -151,5 +167,13 @@ int tlsEngineGetConnectionInfo(const TLS_Engine* p_pEngine, char* p_pCipherName,
 /// @return int Error code
 //////////////////////////////////
 int tlsEngineGetPeerCertificate(TLS_Engine* p_pEngine, char* p_pCertInfo, unsigned long p_ulSize);
+
+//////////////////////////////////
+/// @brief Check if the private key with the PEM format
+/// @param p_pEngine TLS engine
+/// @param p_pKeyPath Path to the private key file
+/// @return int Error code
+//////////////////////////////////
+int tlsEngineCheckPrivateKey(TLS_Engine* p_pEngine, const char* p_pKeyPath);
 
 #endif // TLS_ENGINE_H_

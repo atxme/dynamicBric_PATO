@@ -19,7 +19,7 @@
 
 // Définitions pour le timer
 #define WATCHDOG_DEFAULT_TIMEOUT 100 // 100ms
-#define WATCHDOG_DEVICE_NAME "watchdog_pmu"
+#define WATCHDOG_DEVICE_NAME "watchdog"
 
 ////////////////////////////////////////////////////////////
 /// @param watchdog_t

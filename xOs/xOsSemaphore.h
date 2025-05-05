@@ -22,10 +22,10 @@
 #include "xAssert.h"
 
 // Codes de retour
-#define OS_SEM_SUCCESS       0
-#define OS_SEM_ERROR        -1
-#define OS_SEM_TIMEOUT      -2
-#define OS_SEM_NOT_AVAILABLE -3
+#define OS_SEM_SUCCESS       0xA7D64C80
+#define OS_SEM_ERROR         0xA7D64C81
+#define OS_SEM_TIMEOUT       0xA7D64C82
+#define OS_SEM_NOT_AVAILABLE 0xA7D64C83
 
 // États du sémaphore
 #define OS_SEM_UNLOCKED      0

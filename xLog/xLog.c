@@ -56,14 +56,14 @@ int xLogInit(t_logCtx* p_ptConfig)
 
     // Create mutex
     int l_iRet = mutexCreate(&s_tLogMutex);
-    if (l_iRet != MUTEX_OK) 
+    if (l_iRet != (int)MUTEX_OK) 
     {
         return XOS_LOG_MUTEX_ERROR;
     }
 
     // Lock mutex for initialization
     l_iRet = mutexLock(&s_tLogMutex);
-    if (l_iRet != MUTEX_OK) 
+    if (l_iRet != (int)MUTEX_OK) 
     {
         mutexDestroy(&s_tLogMutex);
         return XOS_LOG_MUTEX_ERROR;
@@ -158,7 +158,7 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
 
     // Now lock mutex only for the actual I/O operations
     int l_iRet = mutexLock(&s_tLogMutex);
-    if (l_iRet != MUTEX_OK) 
+    if (l_iRet != (int)MUTEX_OK) 
     {
         return XOS_LOG_MUTEX_ERROR;
     }
@@ -194,24 +194,28 @@ int xLogWrite(const char* p_ptkcFile, uint32_t p_ulLine, const char* p_ptkcForma
 int xLogClose(void)
 {
     // Early return if not initialized
-    if (atomic_load(&s_eLogState) != XOS_LOG_STATE_INITIALIZED) {
+    if (atomic_load(&s_eLogState) != XOS_LOG_STATE_INITIALIZED) 
+    {
         return XOS_LOG_NOT_INIT;
     }
 
     // Lock mutex for shutdown
     int l_iRet = mutexLock(&s_tLogMutex);
-    if (l_iRet != MUTEX_OK) {
+    if (l_iRet != (int)MUTEX_OK) 
+    {
         return XOS_LOG_MUTEX_ERROR;
     }
 
     // Double-check after acquiring lock
-    if (atomic_load(&s_eLogState) != XOS_LOG_STATE_INITIALIZED) {
+    if (atomic_load(&s_eLogState) != XOS_LOG_STATE_INITIALIZED) 
+    {
         mutexUnlock(&s_tLogMutex);
         return XOS_LOG_NOT_INIT;
     }
 
     // Close log file if open
-    if (s_ptLogFile != NULL) {
+    if (s_ptLogFile != NULL) 
+    {
         fclose(s_ptLogFile);
         s_ptLogFile = NULL;
     }

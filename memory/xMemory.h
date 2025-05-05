@@ -14,13 +14,13 @@
 #include <stdint.h>
 
 // Memory error codes
-#define XOS_MEM_OK            0
-#define XOS_MEM_ERROR        -1
-#define XOS_MEM_INVALID      -2
-#define XOS_MEM_OVERFLOW     -3
-#define XOS_MEM_UNDERFLOW    -4
-#define XOS_MEM_CORRUPTION   -5
-#define XOS_MEM_ALREADY_INIT -6
+#define XOS_MEM_OK            0xB4C73D10
+#define XOS_MEM_ERROR         0xB4C73D11
+#define XOS_MEM_INVALID       0xB4C73D12
+#define XOS_MEM_OVERFLOW      0xB4C73D13
+#define XOS_MEM_UNDERFLOW     0xB4C73D14
+#define XOS_MEM_CORRUPTION    0xB4C73D15
+#define XOS_MEM_ALREADY_INIT  0xB4C73D16
 
 // Memory canary values
 #define XOS_MEM_CANARY_PREFIX 0xDEADBEEFUL

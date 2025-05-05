@@ -18,8 +18,8 @@
 #include "xAssert.h"  // Macro d'assertion personnalisée (si utilisée)
 
 // Codes de retour
-#define OS_TASK_SUCCESS         0
-#define OS_TASK_ERROR          -1
+#define OS_TASK_SUCCESS         0xE2F41A50
+#define OS_TASK_ERROR           0xE2F41A51
 
 // États de la tâche
 #define OS_TASK_STATUS_READY       0UL
@@ -29,8 +29,8 @@
 #define OS_TASK_STATUS_TERMINATED  4UL
 
 // Codes de sortie de tâche
-#define OS_TASK_EXIT_SUCCESS 0L
-#define OS_TASK_EXIT_FAILURE -1L
+#define OS_TASK_EXIT_SUCCESS 0xE2F41A60
+#define OS_TASK_EXIT_FAILURE 0xE2F41A61
 
 typedef enum {
     OS_SCHED_NORMAL = 0,  // SCHED_OTHER - Ordonnancement standard

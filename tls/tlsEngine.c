@@ -15,22 +15,24 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
+static bool s_bLibTlsInitialised = false;
+
 
 ////////////////////////////////////////////////////////////
 /// tlsEngineIORecv
 ////////////////////////////////////////////////////////////
-static int tlsEngineIORecv(WOLFSSL* ssl, char* buf, int sz, void* ctx) 
+static int tlsEngineIORecv(WOLFSSL* t_SslSession, char* buf, int sz, void* t_CipherCtx) 
 {
-    X_ASSERT(ctx != NULL);
+    X_ASSERT(t_CipherCtx != NULL);
     X_ASSERT(buf != NULL);
     X_ASSERT(sz > 0);
-    X_ASSERT(ssl != NULL);
-    int socketFd = *(int*)ctx;
-    if (socketFd < 0) {
+    X_ASSERT(t_SslSession != NULL);
+    int t_iSocketFd = *(int*)t_CipherCtx;
+    if (t_iSocketFd < 0) {
         return WOLFSSL_CBIO_ERR_GENERAL;
     }
     
-    int recvd = recv(socketFd, buf, sz, 0);
+    int recvd = recv(t_iSocketFd, buf, sz, 0);
     if (recvd < 0) 
     {
         return WOLFSSL_CBIO_ERR_GENERAL;
@@ -41,19 +43,19 @@ static int tlsEngineIORecv(WOLFSSL* ssl, char* buf, int sz, void* ctx)
 ////////////////////////////////////////////////////////////
 /// tlsEngineIOSend
 ////////////////////////////////////////////////////////////
-static int tlsEngineIOSend(WOLFSSL* ssl, char* buf, int sz, void* ctx) 
+static int tlsEngineIOSend(WOLFSSL* t_SslSession, char* buf, int sz, void* t_CipherCtx) 
 {
-    X_ASSERT(ctx != NULL);
+    X_ASSERT(t_CipherCtx != NULL);
     X_ASSERT(buf != NULL);
     X_ASSERT(sz > 0);
-    X_ASSERT(ssl != NULL);
+    X_ASSERT(t_SslSession != NULL);
 
-    int socketFd = *(int*)ctx;
-    if (socketFd < 0) {
+    int t_iSocketFd = *(int*)t_CipherCtx;
+    if (t_iSocketFd < 0) {
         return WOLFSSL_CBIO_ERR_GENERAL;
     }
     
-    int sent = send(socketFd, buf, sz, 0);
+    int sent = send(t_iSocketFd, buf, sz, 0);
     if (sent < 0) 
     {
         return WOLFSSL_CBIO_ERR_GENERAL;
@@ -80,96 +82,104 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
     
     // Initialize engine structure
     memset(p_pEngine, 0, sizeof(TLS_Engine));
-    p_pEngine->socketFd = p_iSocketFd;
-    p_pEngine->version = p_pConfig->version;
-    p_pEngine->eccCurve = p_pConfig->eccCurve;
+    p_pEngine->t_iSocketFd = p_iSocketFd;
+    p_pEngine->t_eTlsVersion = p_pConfig->t_eTlsVersion;
+    p_pEngine->t_eEccCurve = p_pConfig->t_eEccCurve;
     
     // Initialize wolfSSL library if not already done
-    static bool wolfSSLInitialized = false;
-    if (!wolfSSLInitialized) {
-        if (wolfSSL_Init() != WOLFSSL_SUCCESS) {
+    if (!s_bLibTlsInitialised) 
+    {
+        if (wolfSSL_Init() != WOLFSSL_SUCCESS) 
+        {
             X_LOG_TRACE("Failed to initialize wolfSSL library");
             return TLS_ERROR;
         }
-        wolfSSLInitialized = true;
+        s_bLibTlsInitialised = true;
         X_LOG_TRACE("wolfSSL library initialized successfully");
     }
     
-    // Create wolfSSL context based on TLS version
+    // Create wolfSSL context based on TLS t_eTlsVersion
     WOLFSSL_METHOD* method = NULL;
-    if (p_pConfig->version == TLS_VERSION_1_3) {
-        if (p_pConfig->isServer) {
+    if (p_pConfig->t_eTlsVersion == TLS_VERSION_1_3) 
+    {
+        if (p_pConfig->t_bIsServer) 
+        {
             method = wolfTLSv1_3_server_method();
             X_LOG_TRACE("Using TLS 1.3 server method");
-        } else {
+        } 
+        else 
+        {
             method = wolfTLSv1_3_client_method();
             X_LOG_TRACE("Using TLS 1.3 client method");
         }
-    } else if (p_pConfig->version == TLS_VERSION_1_2) {
+    } 
+    else if (p_pConfig->t_eTlsVersion == TLS_VERSION_1_2) 
+    {
         // Use TLS 1.2 if explicitly specified
-        if (p_pConfig->isServer) {
+        if (p_pConfig->t_bIsServer) 
+        {
             method = wolfTLSv1_2_server_method();
             X_LOG_TRACE("Using TLS 1.2 server method");
-        } else {
+        } 
+        else 
+        {
             method = wolfTLSv1_2_client_method();
             X_LOG_TRACE("Using TLS 1.2 client method");
         }
-    } else {
-        // Default to TLS 1.3 for any invalid version
-        if (p_pConfig->isServer) {
-            method = wolfTLSv1_3_server_method();
-            X_LOG_TRACE("Using TLS 1.3 server method (default)");
-        } else {
-            method = wolfTLSv1_3_client_method();
-            X_LOG_TRACE("Using TLS 1.3 client method (default)");
-        }
+    } 
+    else 
+    {
+        X_LOG_TRACE("Invalid TLS t_eTlsVersion specified");
+        X_ASSERT(false);
     }
     
-    if (!method) {
+    if (!method) 
+    {
         X_LOG_TRACE("Failed to create SSL method");
         return TLS_ERROR;
     }
     
     // Create the context
-    p_pEngine->ctx = wolfSSL_CTX_new(method);
-    if (!p_pEngine->ctx) {
+    p_pEngine->t_CipherCtx = wolfSSL_CTX_new(method);
+    if (!p_pEngine->t_CipherCtx) 
+    {
         X_LOG_TRACE("Failed to create SSL context");
         return TLS_ERROR;
     }
     X_LOG_TRACE("SSL context created successfully");
     
     // Load certificates and keys if provided
-    if (p_pConfig->caCertPath) 
+    if (p_pConfig->t_cCaPath) 
     {
-        X_LOG_TRACE("Loading CA certificate from %s", p_pConfig->caCertPath);
-        if (wolfSSL_CTX_load_verify_locations(p_pEngine->ctx, p_pConfig->caCertPath, NULL) != WOLFSSL_SUCCESS)
+        X_LOG_TRACE("Loading CA certificate from %s", p_pConfig->t_cCaPath);
+        if (wolfSSL_CTX_load_verify_locations(p_pEngine->t_CipherCtx, p_pConfig->t_cCaPath, NULL) != WOLFSSL_SUCCESS)
         {
             X_LOG_TRACE("Failed to load CA certificate");
-            wolfSSL_CTX_free(p_pEngine->ctx);
-            p_pEngine->ctx = NULL;
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
             return TLS_CERT_ERROR;
         }
         X_LOG_TRACE("CA certificate loaded successfully");
     }
     
-    if (p_pConfig->certPath && p_pConfig->keyPath) 
+    if (p_pConfig->t_cCertPath && p_pConfig->t_cKeyPath) 
     {
-        X_LOG_TRACE("Loading server certificate from %s", p_pConfig->certPath);
-        X_LOG_TRACE("Loading server key from %s", p_pConfig->keyPath);
+        X_LOG_TRACE("Loading server certificate from %s", p_pConfig->t_cCertPath);
+        X_LOG_TRACE("Loading server key from %s", p_pConfig->t_cKeyPath);
         
-        if (wolfSSL_CTX_use_certificate_file(p_pEngine->ctx, p_pConfig->certPath, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) 
+        if (wolfSSL_CTX_use_certificate_file(p_pEngine->t_CipherCtx, p_pConfig->t_cCertPath, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) 
         {
             X_LOG_TRACE("Failed to load server certificate");
-            wolfSSL_CTX_free(p_pEngine->ctx);
-            p_pEngine->ctx = NULL;
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
             return TLS_CERT_ERROR;
         }
         
-        if (wolfSSL_CTX_use_PrivateKey_file(p_pEngine->ctx, p_pConfig->keyPath, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) 
+        if (wolfSSL_CTX_use_PrivateKey_file(p_pEngine->t_CipherCtx, p_pConfig->t_cKeyPath, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS) 
         {
             X_LOG_TRACE("Failed to load server key");
-            wolfSSL_CTX_free(p_pEngine->ctx);
-            p_pEngine->ctx = NULL;
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
             return TLS_CERT_ERROR;
         }
         
@@ -177,14 +187,14 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
     }
     
     // Set verification mode
-    if (p_pConfig->verifyPeer) 
+    if (p_pConfig->t_bVerifyPeer) 
     {
-        wolfSSL_CTX_set_verify(p_pEngine->ctx, WOLFSSL_VERIFY_PEER, NULL);
+        wolfSSL_CTX_set_verify(p_pEngine->t_CipherCtx, WOLFSSL_VERIFY_PEER, NULL);
         X_LOG_TRACE("Peer verification enabled");
     } 
     else 
     {
-        wolfSSL_CTX_set_verify(p_pEngine->ctx, WOLFSSL_VERIFY_NONE, NULL);
+        wolfSSL_CTX_set_verify(p_pEngine->t_CipherCtx, WOLFSSL_VERIFY_NONE, NULL);
         X_LOG_TRACE("Peer verification disabled");
     }
     
@@ -192,20 +202,31 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
     if (p_pConfig->cipherList) 
     {
         X_LOG_TRACE("Setting cipher list: %s", p_pConfig->cipherList);
-        if (wolfSSL_CTX_set_cipher_list(p_pEngine->ctx, p_pConfig->cipherList) != WOLFSSL_SUCCESS) 
+        if (wolfSSL_CTX_set_cipher_list(p_pEngine->t_CipherCtx, p_pConfig->cipherList) != WOLFSSL_SUCCESS) 
         {
             X_LOG_TRACE("Failed to set cipher list");
-            wolfSSL_CTX_free(p_pEngine->ctx);
-            p_pEngine->ctx = NULL;
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
+            return TLS_ERROR;
+        }
+    }
+    else 
+    {
+        X_LOG_TRACE("No cipher list provided, using default : %s", s_kptcTlsCipherList);
+        if (wolfSSL_CTX_set_cipher_list(p_pEngine->t_CipherCtx, (char*)s_kptcTlsCipherList) != WOLFSSL_SUCCESS) 
+        {
+            X_LOG_TRACE("Failed to set default cipher list");
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
             return TLS_ERROR;
         }
     }
     
     // Configure ECC curve
     int curve;
-    X_LOG_TRACE("Configuring ECC curve: %d", p_pConfig->eccCurve);
+    X_LOG_TRACE("Configuring ECC curve: %d", p_pConfig->t_eEccCurve);
     
-    switch (p_pConfig->eccCurve) 
+    switch (p_pConfig->t_eEccCurve) 
     {
         case TLS_ECC_SECP256R1:
             X_LOG_TRACE("Using SECP256R1 (P-256) curve");
@@ -229,26 +250,26 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
     }
     
     // Set TLS 1.3 groups (curves)
-    if (p_pConfig->version == TLS_VERSION_1_3) 
+    if (p_pConfig->t_eTlsVersion == TLS_VERSION_1_3) 
     {
         int groups_array[1] = { curve };
         X_LOG_TRACE("Setting TLS 1.3 groups");
         
-        if (wolfSSL_CTX_set_groups(p_pEngine->ctx, groups_array, 1) != WOLFSSL_SUCCESS) 
+        if (wolfSSL_CTX_set_groups(p_pEngine->t_CipherCtx, groups_array, 1) != WOLFSSL_SUCCESS) 
         {
             X_LOG_TRACE("Failed to set TLS 1.3 groups");
-            wolfSSL_CTX_free(p_pEngine->ctx);
-            p_pEngine->ctx = NULL;
+            wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+            p_pEngine->t_CipherCtx = NULL;
             return TLS_ERROR;
         }
     }
     
     // Set IO callbacks
     X_LOG_TRACE("Setting IO callbacks");
-    wolfSSL_SetIORecv(p_pEngine->ctx, tlsEngineIORecv);
-    wolfSSL_SetIOSend(p_pEngine->ctx, tlsEngineIOSend);
+    wolfSSL_SetIORecv(p_pEngine->t_CipherCtx, tlsEngineIORecv);
+    wolfSSL_SetIOSend(p_pEngine->t_CipherCtx, tlsEngineIOSend);
     
-    p_pEngine->isInitialized = true;
+    p_pEngine->t_bInitialised = true;
     X_LOG_TRACE("TLS engine initialized successfully");
     
     return TLS_OK;
@@ -259,7 +280,7 @@ int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pC
 ////////////////////////////////////////////////////////////
 int tlsEngineConnect(TLS_Engine* p_pEngine) 
 {
-    if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ctx || p_pEngine->socketFd < 0) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised || !p_pEngine->t_CipherCtx || p_pEngine->t_iSocketFd < 0) 
     {
         return TLS_INVALID_PARAM;
     }
@@ -267,32 +288,32 @@ int tlsEngineConnect(TLS_Engine* p_pEngine)
     X_LOG_TRACE("Starting client TLS handshake");
     
     // Create new wolfSSL session
-    p_pEngine->ssl = wolfSSL_new(p_pEngine->ctx);
-    if (!p_pEngine->ssl) 
+    p_pEngine->t_SslSession = wolfSSL_new(p_pEngine->t_CipherCtx);
+    if (!p_pEngine->t_SslSession) 
     {
         X_LOG_TRACE("Failed to create client SSL session");
         return TLS_ERROR;
     }
     
     // Set socket as IO context
-    wolfSSL_SetIOReadCtx(p_pEngine->ssl, &p_pEngine->socketFd);
-    wolfSSL_SetIOWriteCtx(p_pEngine->ssl, &p_pEngine->socketFd);
+    wolfSSL_SetIOReadCtx(p_pEngine->t_SslSession, &p_pEngine->t_iSocketFd);
+    wolfSSL_SetIOWriteCtx(p_pEngine->t_SslSession, &p_pEngine->t_iSocketFd);
     
     // Perform TLS handshake
-    int ret = wolfSSL_connect(p_pEngine->ssl);
+    int ret = wolfSSL_connect(p_pEngine->t_SslSession);
     if (ret != WOLFSSL_SUCCESS) 
     {
-        int err = wolfSSL_get_error(p_pEngine->ssl, ret);
+        int err = wolfSSL_get_error(p_pEngine->t_SslSession, ret);
         char errorBuffer[80];
         wolfSSL_ERR_error_string(err, errorBuffer);
         X_LOG_TRACE("TLS client handshake failed with error code %d, message: %s", err, errorBuffer);
-        wolfSSL_free(p_pEngine->ssl);
-        p_pEngine->ssl = NULL;
+        wolfSSL_free(p_pEngine->t_SslSession);
+        p_pEngine->t_SslSession = NULL;
         return TLS_CONNECT_ERROR;
     }
     
     X_LOG_TRACE("TLS client handshake completed successfully");
-    p_pEngine->isConnected = true;
+    p_pEngine->t_bIsConnected = true;
     
     return TLS_OK;
 }
@@ -302,8 +323,8 @@ int tlsEngineConnect(TLS_Engine* p_pEngine)
 ////////////////////////////////////////////////////////////
 int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_pListenEngine) 
 {
-    if (!p_pEngine || !p_pListenEngine || !p_pListenEngine->isInitialized || 
-        !p_pListenEngine->ctx || p_iSocketFd < 0) 
+    if (!p_pEngine || !p_pListenEngine || !p_pListenEngine->t_bInitialised || 
+        !p_pListenEngine->t_CipherCtx || p_iSocketFd < 0) 
     {
         X_LOG_TRACE("Invalid parameters for TLS accept");
         return TLS_INVALID_PARAM;
@@ -313,20 +334,20 @@ int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_
     
     // Initialize engine structure
     memset(p_pEngine, 0, sizeof(TLS_Engine));
-    p_pEngine->socketFd = p_iSocketFd;
-    p_pEngine->version = p_pListenEngine->version;
-    p_pEngine->eccCurve = p_pListenEngine->eccCurve;
+    p_pEngine->t_iSocketFd = p_iSocketFd;
+    p_pEngine->t_eTlsVersion = p_pListenEngine->t_eTlsVersion;
+    p_pEngine->t_eEccCurve = p_pListenEngine->t_eEccCurve;
     
     // We'll use the listening engine's context to create a new SSL session,
     // but won't store a reference to it to avoid potential double-free issues.
-    // The CTX ownership stays with the listener.
-    p_pEngine->ctx = NULL; // Don't assign the context directly
+    // The t_CipherCtx ownership stays with the listener.
+    p_pEngine->t_CipherCtx = NULL; // Don't assign the context directly
     
     // Create new wolfSSL session using the listening engine's context
-    WOLFSSL_CTX* listenerCtx = p_pListenEngine->ctx;
-    X_LOG_TRACE("Creating new SSL session using listener's CTX");
-    p_pEngine->ssl = wolfSSL_new(listenerCtx);
-    if (!p_pEngine->ssl) 
+    WOLFSSL_CTX* listenerCtx = p_pListenEngine->t_CipherCtx;
+    X_LOG_TRACE("Creating new SSL session using listener's t_CipherCtx");
+    p_pEngine->t_SslSession = wolfSSL_new(listenerCtx);
+    if (!p_pEngine->t_SslSession) 
     {
         X_LOG_TRACE("Failed to create new SSL session");
         return TLS_ERROR;
@@ -334,39 +355,39 @@ int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_
     
     // Désactiver la vérification des certificats pour l'acceptation
     // Cela permettra de contourner le problème d'erreur ASN
-    wolfSSL_set_verify(p_pEngine->ssl, WOLFSSL_VERIFY_NONE, NULL);
+    wolfSSL_set_verify(p_pEngine->t_SslSession, WOLFSSL_VERIFY_NONE, NULL);
     X_LOG_TRACE("Peer verification temporarily disabled for handshake");
     
-    p_pEngine->isInitialized = true;
+    p_pEngine->t_bInitialised = true;
     
     // Set socket as IO context
     X_LOG_TRACE("Setting IO context for socket %d", p_iSocketFd);
-    wolfSSL_SetIOReadCtx(p_pEngine->ssl, &p_pEngine->socketFd);
-    wolfSSL_SetIOWriteCtx(p_pEngine->ssl, &p_pEngine->socketFd);
+    wolfSSL_SetIOReadCtx(p_pEngine->t_SslSession, &p_pEngine->t_iSocketFd);
+    wolfSSL_SetIOWriteCtx(p_pEngine->t_SslSession, &p_pEngine->t_iSocketFd);
     
     // Debug: Afficher des informations supplémentaires sur le contexte SSL
     X_LOG_TRACE("Debug info: p_pEngine socket: %d, listening socket: %d", 
-               p_pEngine->socketFd, p_pListenEngine->socketFd);
+               p_pEngine->t_iSocketFd, p_pListenEngine->t_iSocketFd);
     
     // Perform TLS handshake
     X_LOG_TRACE("Performing TLS accept handshake");
-    int ret = wolfSSL_accept(p_pEngine->ssl);
+    int ret = wolfSSL_accept(p_pEngine->t_SslSession);
     
     // Obtenir et enregistrer plus d'informations d'erreur en cas d'échec
     if (ret != WOLFSSL_SUCCESS) 
     {
-        int err = wolfSSL_get_error(p_pEngine->ssl, ret);
+        int err = wolfSSL_get_error(p_pEngine->t_SslSession, ret);
         char errorBuffer[80];
         wolfSSL_ERR_error_string(err, errorBuffer);
         X_LOG_TRACE("TLS accept failed with error code: %d, message: %s", err, errorBuffer);
-        wolfSSL_free(p_pEngine->ssl);
-        p_pEngine->ssl = NULL;
-        p_pEngine->isInitialized = false;
+        wolfSSL_free(p_pEngine->t_SslSession);
+        p_pEngine->t_SslSession = NULL;
+        p_pEngine->t_bInitialised = false;
         return TLS_CONNECT_ERROR;
     }
     
     X_LOG_TRACE("TLS handshake completed successfully");
-    p_pEngine->isConnected = true;
+    p_pEngine->t_bIsConnected = true;
     
     return TLS_OK;
 }
@@ -375,13 +396,13 @@ int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_
 /// tlsEngineSend
 ////////////////////////////////////////////////////////////
 int tlsEngineSend(TLS_Engine* p_pEngine, const void* p_pBuffer, unsigned long p_ulSize) {
-    if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
-        !p_pEngine->isConnected || !p_pBuffer) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised || !p_pEngine->t_SslSession || 
+        !p_pEngine->t_bIsConnected || !p_pBuffer) 
     {
         return TLS_INVALID_PARAM;
     }
     
-    int sent = wolfSSL_write(p_pEngine->ssl, p_pBuffer, p_ulSize);
+    int sent = wolfSSL_write(p_pEngine->t_SslSession, p_pBuffer, p_ulSize);
     
     if (sent < 0) 
     {
@@ -396,17 +417,17 @@ int tlsEngineSend(TLS_Engine* p_pEngine, const void* p_pBuffer, unsigned long p_
 ////////////////////////////////////////////////////////////
 int tlsEngineReceive(TLS_Engine* p_pEngine, void* p_pBuffer, unsigned long p_ulSize) 
 {
-    if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
-        !p_pEngine->isConnected || !p_pBuffer) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised || !p_pEngine->t_SslSession || 
+        !p_pEngine->t_bIsConnected || !p_pBuffer) 
     {
         return TLS_INVALID_PARAM;
     }
     
-    int received = wolfSSL_read(p_pEngine->ssl, p_pBuffer, p_ulSize);
+    int received = wolfSSL_read(p_pEngine->t_SslSession, p_pBuffer, p_ulSize);
     
     if (received < 0) 
     {
-        int err = wolfSSL_get_error(p_pEngine->ssl, received);
+        int err = wolfSSL_get_error(p_pEngine->t_SslSession, received);
         if (err == WOLFSSL_ERROR_WANT_READ || err == WOLFSSL_ERROR_WANT_WRITE) 
         {
             return 0; // No data available yet
@@ -422,18 +443,18 @@ int tlsEngineReceive(TLS_Engine* p_pEngine, void* p_pBuffer, unsigned long p_ulS
 ////////////////////////////////////////////////////////////
 int tlsEngineClose(TLS_Engine* p_pEngine) 
 {
-    if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised || !p_pEngine->t_SslSession) 
     {
         return TLS_INVALID_PARAM;
     }
     
     // Perform TLS shutdown
-    wolfSSL_shutdown(p_pEngine->ssl);
+    wolfSSL_shutdown(p_pEngine->t_SslSession);
     
     // Free wolfSSL session
-    wolfSSL_free(p_pEngine->ssl);
-    p_pEngine->ssl = NULL;
-    p_pEngine->isConnected = false;
+    wolfSSL_free(p_pEngine->t_SslSession);
+    p_pEngine->t_SslSession = NULL;
+    p_pEngine->t_bIsConnected = false;
     
     return TLS_OK;
 }
@@ -443,7 +464,7 @@ int tlsEngineClose(TLS_Engine* p_pEngine)
 ////////////////////////////////////////////////////////////
 int tlsEngineCleanup(TLS_Engine* p_pEngine) 
 {
-    if (!p_pEngine || !p_pEngine->isInitialized) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised) 
     {
         return TLS_INVALID_PARAM;
     }
@@ -451,27 +472,27 @@ int tlsEngineCleanup(TLS_Engine* p_pEngine)
     X_LOG_TRACE("Cleaning up TLS engine resources");
     
     // Close connection if still active
-    if (p_pEngine->ssl) 
+    if (p_pEngine->t_SslSession) 
     {
         X_LOG_TRACE("Freeing SSL session");
-        wolfSSL_free(p_pEngine->ssl);
-        p_pEngine->ssl = NULL;
+        wolfSSL_free(p_pEngine->t_SslSession);
+        p_pEngine->t_SslSession = NULL;
     }
     
     // Free wolfSSL context only if we own it (not shared from accept)
-    if (p_pEngine->ctx) 
+    if (p_pEngine->t_CipherCtx) 
     {
         X_LOG_TRACE("Freeing SSL context");
-        wolfSSL_CTX_free(p_pEngine->ctx);
-        p_pEngine->ctx = NULL;
+        wolfSSL_CTX_free(p_pEngine->t_CipherCtx);
+        p_pEngine->t_CipherCtx = NULL;
     } 
     else 
     {
-        X_LOG_TRACE("Skipping CTX cleanup (shared or NULL ctx)");
+        X_LOG_TRACE("Skipping t_CipherCtx cleanup (shared or NULL t_CipherCtx)");
     }
     
-    p_pEngine->isInitialized = false;
-    p_pEngine->isConnected = false;
+    p_pEngine->t_bInitialised = false;
+    p_pEngine->t_bIsConnected = false;
     
     return TLS_OK;
 }
@@ -510,7 +531,7 @@ bool tlsEngineIsEnabled(const TLS_Engine* p_pEngine)
         return false;
     }
     
-    return p_pEngine->isInitialized;
+    return p_pEngine->t_bInitialised;
 }
 
 ////////////////////////////////////////////////////////////
@@ -518,14 +539,14 @@ bool tlsEngineIsEnabled(const TLS_Engine* p_pEngine)
 ////////////////////////////////////////////////////////////
 int tlsEngineGetConnectionInfo(const TLS_Engine* p_pEngine, char* p_pCipherName, unsigned long p_ulSize) 
 {
-    if (!p_pEngine || !p_pEngine->isInitialized || !p_pEngine->ssl || 
-        !p_pEngine->isConnected || !p_pCipherName) 
+    if (!p_pEngine || !p_pEngine->t_bInitialised || !p_pEngine->t_SslSession || 
+        !p_pEngine->t_bIsConnected || !p_pCipherName) 
     {
         return TLS_INVALID_PARAM;
     }
     
     // Get cipher name
-    const char* cipherName = wolfSSL_get_cipher_name(p_pEngine->ssl);
+    const char* cipherName = wolfSSL_get_cipher_name(p_pEngine->t_SslSession);
     if (!cipherName) 
     {
         return TLS_ERROR;
@@ -535,5 +556,25 @@ int tlsEngineGetConnectionInfo(const TLS_Engine* p_pEngine, char* p_pCipherName,
     strncpy(p_pCipherName, cipherName, p_ulSize - 1);
     p_pCipherName[p_ulSize - 1] = '\0';
     
+    return TLS_OK;
+}
+
+////////////////////////////////////////////////////////////
+/// tlsEngineGetPeerCertificate
+////////////////////////////////////////////////////////////
+int tlsEngineCheckPrivateKey(TLS_Engine* p_pEngine, const char* p_pKeyPath)
+{
+
+    if (!p_pEngine || !p_pKeyPath) 
+    {
+        return TLS_INVALID_PARAM;
+    }
+
+    // Check if the private key is valid
+    if (wolfSSL_CTX_use_PrivateKey_file(p_pEngine->t_CipherCtx, p_pKeyPath, WOLFSSL_FILETYPE_PEM) != WOLFSSL_SUCCESS)
+    {
+        return TLS_CERT_ERROR;
+    }
+
     return TLS_OK;
 }

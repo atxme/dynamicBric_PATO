@@ -14,11 +14,11 @@
 #include <time.h>
 
 // Timer error codes
-#define XOS_TIMER_OK            0
-#define XOS_TIMER_ERROR        -1
-#define XOS_TIMER_INVALID      -2
-#define XOS_TIMER_TIMEOUT      -3
-#define XOS_TIMER_NOT_INIT     -4
+#define XOS_TIMER_OK            0xD9A84B10
+#define XOS_TIMER_ERROR         0xD9A84B11
+#define XOS_TIMER_INVALID       0xD9A84B12
+#define XOS_TIMER_TIMEOUT       0xD9A84B13
+#define XOS_TIMER_NOT_INIT      0xD9A84B14
 
 // Timer modes
 #define XOS_TIMER_MODE_ONESHOT  0

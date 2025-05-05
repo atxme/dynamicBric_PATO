@@ -17,12 +17,12 @@
 
 
 // Mutex error codes
-#define MUTEX_OK              0
-#define MUTEX_ERROR          -1
-#define MUTEX_TIMEOUT        -2
-#define MUTEX_INVALID        -3
-#define MUTEX_ALREADY_INIT   -4
-#define MUTEX_NOT_INIT       -5
+#define MUTEX_OK              0xF3B59E20
+#define MUTEX_ERROR           0xF3B59E21
+#define MUTEX_TIMEOUT         0xF3B59E22
+#define MUTEX_INVALID         0xF3B59E23
+#define MUTEX_ALREADY_INIT    0xF3B59E24
+#define MUTEX_NOT_INIT        0xF3B59E25
 
 // Mutex states
 #define MUTEX_UNLOCKED 0
