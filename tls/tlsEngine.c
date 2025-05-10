@@ -189,7 +189,7 @@ unsigned long tlsEngineInit(TLS_Engine* p_pttEngine, int p_iSocketFd, const TLS_
     // Set verification mode
     if (p_kpttConfig->t_bVerifyPeer) 
     {
-        wolfSSL_CTX_set_verify(p_pttEngine->t_CipherCtx, WOLFSSL_VERIFY_PEER, NULL);
+        wolfSSL_CTX_set_verify(p_pttEngine->t_CipherCtx, WOLFSSL_VERIFY_PEER, NULL); 
         X_LOG_TRACE("Peer verification enabled");
     } 
     else 
@@ -406,7 +406,8 @@ unsigned long tlsEngineAccept(TLS_Engine* p_pttEngine, int p_iSocketFd, const TL
 ////////////////////////////////////////////////////////////
 /// tlsEngineSend
 ////////////////////////////////////////////////////////////
-unsigned long tlsEngineSend(TLS_Engine* p_pttEngine, const void* p_pBuffer, unsigned long p_ulSize) {
+unsigned long tlsEngineSend(TLS_Engine* p_pttEngine, const void* p_pBuffer, unsigned long p_ulSize) 
+{
     if (!p_pttEngine || !p_pttEngine->t_bInitialised || !p_pttEngine->t_SslSession || 
         !p_pttEngine->t_bIsConnected || !p_pBuffer) 
     {

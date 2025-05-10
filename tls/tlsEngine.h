@@ -65,15 +65,15 @@ typedef struct tlsEngine_t
 // TLS configuration structure
 typedef struct tlsConfig_t
 {
-    TLS_Version t_eTlsVersion;  // TLS version to use
-    TLS_ECC_Curve t_eEccCurve;     // ECC curve to use
-    bool t_bVerifyPeer;           // Verify peer certificate
-    const char* t_cCaPath;    // CA certificate path
-    const char* t_cCertPath;      // Certificate path
-    const char* t_cKeyPath;       // Private key path
-    const char* cipherList;    // Cipher list (NULL for defaults) TODO: add cipher list ECDHE and ECDSA and RSA support
-    bool t_bIsServer;             // True for server, false for client
-    bool t_bLoadEcdsaCipher;   // True to load ECDSA cipher and set the ecc key as ECDSA instead of ecdh
+    TLS_Version t_eTlsVersion;      // TLS version to use
+    TLS_ECC_Curve t_eEccCurve;      // ECC curve to use
+    bool t_bVerifyPeer;             // Verify peer certificate : this feature is not necessary for a controlled environment
+    const char* t_cCaPath;          // CA certificate path
+    const char* t_cCertPath;        // Certificate path
+    const char* t_cKeyPath;         // Private key path
+    const char* cipherList;         // Cipher list (NULL for defaults) TODO: add cipher list ECDHE and ECDSA and RSA support
+    bool t_bIsServer;               // True for server, false for client
+    bool t_bLoadEcdsaCipher;        // True to load ECDSA cipher and set the ecc key as ECDSA instead of ecdh
 } TLS_Config;
 
 //////////////////////////////////
