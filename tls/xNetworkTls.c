@@ -137,6 +137,14 @@ NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
     l_tTlsConfig.t_cCertPath = p_pTlsConfig->t_cCertPath;
     l_tTlsConfig.t_cKeyPath = p_pTlsConfig->t_cKeyPath;
     
+    // Set cipher list
+    l_tTlsConfig.cipherList = s_kptcDefaultTlsCipher;
+
+    X_LOG_TRACE("networkCreateSecureSocket: Using cipher list: %s", l_tTlsConfig.cipherList);
+    
+    // Set ECDSA flag if necessary
+    l_tTlsConfig.t_bLoadEcdsaCipher = false;  // Default to false
+    
     // Set verification mode
     l_tTlsConfig.t_bVerifyPeer = p_pTlsConfig->t_bVerifyPeer;
     X_LOG_TRACE("networkCreateSecureSocket: Peer verification %s", 
@@ -404,6 +412,15 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     clientConfig.t_eTlsVersion = tlsEngine->t_eTlsVersion;
     clientConfig.t_eEccCurve = tlsEngine->t_eEccCurve;
     clientConfig.t_bIsServer = false; // Explicitly set to client mode
+    
+    // Use appropriate cipher list
+    X_LOG_TRACE("networkConnect: Using cipher list: %s", clientConfig.cipherList);
+    
+    // Copy certificates from the original TLS engine
+    TLS_Engine* origEngine = (TLS_Engine*)p_pSocket->t_pTlsEngine;
+    clientConfig.t_cCaPath = NULL;  // Not needed for client connection
+    clientConfig.t_cCertPath = NULL;  // Not needed for client connection
+    clientConfig.t_cKeyPath = NULL;  // Not needed for client connection
     
     // Désactiver temporairement la vérification des certificats pour résoudre l'erreur ASN
     clientConfig.t_bVerifyPeer = false;

@@ -223,8 +223,8 @@ unsigned long tlsEngineInit(TLS_Engine* p_pttEngine, int p_iSocketFd, const TLS_
     }
     else 
     {
-        X_LOG_TRACE("No cipher list provided, using default : %s", s_kptcTlsCipherList);
-        if (wolfSSL_CTX_set_cipher_list(p_pttEngine->t_CipherCtx, (char*)s_kptcTlsCipherList) != WOLFSSL_SUCCESS) 
+        X_LOG_TRACE("No cipher list provided, using default : %s", s_kptcDefaultTlsCipher);
+        if (wolfSSL_CTX_set_cipher_list(p_pttEngine->t_CipherCtx, (char*)s_kptcDefaultTlsCipher) != WOLFSSL_SUCCESS) 
         {
             X_LOG_TRACE("Failed to set default cipher list");
             wolfSSL_CTX_free(p_pttEngine->t_CipherCtx);
