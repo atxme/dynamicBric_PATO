@@ -16,11 +16,15 @@
 ////////////////////////////////////////////////////////////
 void xAssert(const uint8_t* p_ptkcFile, uint32_t p_ulLine, const void* p_ptMsg)
 {
-    X_LOG_ASSERT("%s", "Assertion failed");
 
     if (p_ptMsg != NULL)
     {
+        X_LOG_ASSERT("Assertion failed in %s at line %u", (char*)p_ptkcFile, p_ulLine);
         X_LOG_ASSERT("%s", (const char*)p_ptMsg);
+    }
+    else
+    {
+        X_LOG_ASSERT("Assertion failed in %s at line %u", (char*)p_ptkcFile, p_ulLine);
     }
 
 #if defined(XOS_ASSERT_MODE_EXIT)

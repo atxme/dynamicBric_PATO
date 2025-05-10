@@ -11,16 +11,19 @@
 
 #include "xNetworkTls.h"
 
-// N'inclure ce fichier que si USE_TLS est défini
+
 #ifdef USE_TLS
 
 //////////////////////////////////
 /// Core API Implementation
 //////////////////////////////////
 
-// Create a secure socket with TLS support
+////////////////////////////////////////////////////////////
+/// networkCreateSecureSocket
+////////////////////////////////////////////////////////////
 NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
 {
+    unsigned long l_ulReturn = 0;
     if (!p_pTlsConfig) 
     {
         X_LOG_TRACE("networkCreateSecureSocket: Invalid TLS configuration");
@@ -66,14 +69,16 @@ NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
 
     // Allocate a new socket structure
     NetworkSocket *l_pSocket = (NetworkSocket *)malloc(sizeof(NetworkSocket));
-    if (!l_pSocket) {
+    if (!l_pSocket) 
+    {
         X_LOG_TRACE("networkCreateSecureSocket: Memory allocation failed");
         return NULL;
     }
 
     // Create the actual socket (always TCP for TLS)
     l_pSocket->t_iSocketFd = socket(AF_INET, NETWORK_SOCK_TCP, 0);
-    if (l_pSocket->t_iSocketFd < 0) {
+    if (l_pSocket->t_iSocketFd < 0) 
+    {
         X_LOG_TRACE("networkCreateSecureSocket: Socket creation failed with errno %d", errno);
         free(l_pSocket);
         return NULL;
@@ -92,7 +97,8 @@ NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
     
     // Allocate TLS engine
     l_pSocket->t_pTlsEngine = malloc(sizeof(TLS_Engine));
-    if (!l_pSocket->t_pTlsEngine) {
+    if (!l_pSocket->t_pTlsEngine) 
+    {
         X_LOG_TRACE("networkCreateSecureSocket: TLS engine allocation failed");
         close(l_pSocket->t_iSocketFd);
         free(l_pSocket);
@@ -136,26 +142,28 @@ NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
     X_LOG_TRACE("networkCreateSecureSocket: Peer verification %s", 
                l_tTlsConfig.t_bVerifyPeer ? "enabled" : "disabled");
     
-    // Déterminer si nous sommes en mode serveur ou client basé sur le nom du fichier des certificats
-    // Les certificats serveur devraient contenir "server" dans leur chemin 
-    // Les certificats client devraient contenir "client" dans leur chemin
-    if (strstr(p_pTlsConfig->t_cCertPath, "server") != NULL) {
+    // TODO: supprimer cette partie pour une partie plus fiable base sur la cryptographie 
+    if (strstr(p_pTlsConfig->t_cCertPath, "server") != NULL) 
+    {
         l_tTlsConfig.t_bIsServer = true;
-        X_LOG_TRACE("networkCreateSecureSocket: Detected server certificate, using server mode");
-    } else {
+        X_LOG_TRACE("Using server mode");
+    } 
+    else 
+    {
         l_tTlsConfig.t_bIsServer = false;
-        X_LOG_TRACE("networkCreateSecureSocket: Using client mode");
+        X_LOG_TRACE("Using client mode");
     }
     
     // Initialize the TLS engine
     X_LOG_TRACE("networkCreateSecureSocket: Initializing TLS engine for socket %d", l_pSocket->t_iSocketFd);
-    int l_iResult = tlsEngineInit((TLS_Engine*)l_pSocket->t_pTlsEngine, 
+    l_ulReturn = tlsEngineInit((TLS_Engine*)l_pSocket->t_pTlsEngine, 
                                   l_pSocket->t_iSocketFd, 
                                   &l_tTlsConfig);
     
-    if (l_iResult != TLS_OK) {
+    if (l_ulReturn != TLS_OK) 
+    {
         X_LOG_TRACE("networkCreateSecureSocket: TLS engine initialization failed with error code %d (%s)",
-                   l_iResult, tlsEngineGetErrorString(l_iResult));
+                   l_ulReturn, tlsEngineGetErrorString(l_ulReturn));
         free(l_pSocket->t_pTlsEngine);
         close(l_pSocket->t_iSocketFd);
         free(l_pSocket);
@@ -166,7 +174,9 @@ NetworkSocket *networkCreateSecureSocket(const NetworkTlsConfig *p_pTlsConfig)
     return l_pSocket;
 }
 
-// Create network address
+////////////////////////////////////////////////////////////
+/// networkMakeAddress
+////////////////////////////////////////////////////////////
 NetworkAddress networkMakeAddress(const char *p_pcAddress, unsigned short p_usPort)
 {
     NetworkAddress l_tAddress;
@@ -196,7 +206,9 @@ NetworkAddress networkMakeAddress(const char *p_pcAddress, unsigned short p_usPo
     return l_tAddress;
 }
 
-// Bind socket to address
+////////////////////////////////////////////////////////////
+/// networkBind
+////////////////////////////////////////////////////////////
 int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 {
     // Check pointers
@@ -236,7 +248,9 @@ int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     return NETWORK_OK;
 }
 
-// Listen for connections
+////////////////////////////////////////////////////////////
+/// networkListen
+////////////////////////////////////////////////////////////
 int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -250,7 +264,9 @@ int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
     return NETWORK_OK;
 }
 
-// Accept a secure connection
+////////////////////////////////////////////////////////////
+/// networkAccept
+////////////////////////////////////////////////////////////
 NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClientAddress)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0 || !p_pSocket->t_pTlsEngine) 
@@ -318,15 +334,15 @@ NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClient
                serverEngine->t_bInitialised, serverEngine->t_bIsConnected);
     
     // Démarrer le handshake TLS
-    int l_iResult = tlsEngineAccept(
+    int l_ulReturn = tlsEngineAccept(
         (TLS_Engine*)l_pClientSocket->t_pTlsEngine,
         l_iClientFd,
         (TLS_Engine*)p_pSocket->t_pTlsEngine
     );
 
-    if (l_iResult != TLS_OK) 
+    if (l_ulReturn != TLS_OK) 
     {
-        X_LOG_TRACE("networkAccept: TLS handshake failed with error %d", l_iResult);
+        X_LOG_TRACE("networkAccept: TLS handshake failed with error %d", l_ulReturn);
         free(l_pClientSocket->t_pTlsEngine);
         close(l_iClientFd);
         free(l_pClientSocket);
@@ -337,7 +353,9 @@ NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClient
     return l_pClientSocket;
 }
 
-// Connect to secure server
+////////////////////////////////////////////////////////////
+/// networkConnect
+////////////////////////////////////////////////////////////
 int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0 || !p_pSocket->t_pTlsEngine)
@@ -392,8 +410,8 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     X_LOG_TRACE("networkConnect: Peer verification temporarily disabled during handshake");
     
     // Reinitialize TLS engine with client configuration
-    int l_iResult = tlsEngineInit(tlsEngine, p_pSocket->t_iSocketFd, &clientConfig);
-    if (l_iResult != TLS_OK) 
+    int l_ulReturn = tlsEngineInit(tlsEngine, p_pSocket->t_iSocketFd, &clientConfig);
+    if (l_ulReturn != TLS_OK) 
     {
         X_LOG_TRACE("networkConnect: Failed to initialize TLS client mode");
         p_pSocket->t_bConnected = false;
@@ -401,10 +419,10 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     }
     
     // Now perform the TLS client handshake
-    l_iResult = tlsEngineConnect(tlsEngine);
-    if (l_iResult != TLS_OK) 
+    l_ulReturn = tlsEngineConnect(tlsEngine);
+    if (l_ulReturn != TLS_OK) 
     {
-        X_LOG_TRACE("networkConnect: TLS handshake failed with error %d", l_iResult);
+        X_LOG_TRACE("networkConnect: TLS handshake failed with error %d", l_ulReturn);
         p_pSocket->t_bConnected = false;
         return NETWORK_TLS_ERROR;
     }
@@ -413,7 +431,9 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
     return NETWORK_OK;
 }
 
-// Send data securely
+////////////////////////////////////////////////////////////
+/// networkSend
+////////////////////////////////////////////////////////////
 int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
@@ -454,7 +474,9 @@ int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p
     return result;
 }
 
-// Receive data securely
+////////////////////////////////////////////////////////////
+/// networkReceive
+////////////////////////////////////////////////////////////
 int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
@@ -499,7 +521,9 @@ int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ul
     return result;
 }
 
-// Close secure socket
+////////////////////////////////////////////////////////////
+/// networkCloseSocket
+////////////////////////////////////////////////////////////
 int networkCloseSocket(NetworkSocket *p_pSocket)
 {
     if (!p_pSocket)
@@ -542,7 +566,9 @@ int networkCloseSocket(NetworkSocket *p_pSocket)
     return NETWORK_OK;
 }
 
-// Set socket timeout
+////////////////////////////////////////////////////////////
+/// networkSetTimeout
+////////////////////////////////////////////////////////////
 int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTimeout)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
@@ -566,12 +592,14 @@ int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTi
     return NETWORK_OK;
 }
 
-// Wait for activity on socket
+////////////////////////////////////////////////////////////
+/// networkWaitForActivity
+////////////////////////////////////////////////////////////
 int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
     {
-        X_LOG_TRACE("networkWaitForActivity: Invalid socket or socket file descriptor is negative");
+        X_LOG_TRACE("Invalid socket or socket file descriptor is negative");
         return NETWORK_INVALID_PARAM;
     }
 
@@ -587,17 +615,17 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
         l_pTimeout = &l_tTimeout;
     }
 
-    int l_iResult = select(p_pSocket->t_iSocketFd + 1, &l_tReadSet, NULL, NULL, l_pTimeout);
+    int l_ulReturn = select(p_pSocket->t_iSocketFd + 1, &l_tReadSet, NULL, NULL, l_pTimeout);
 
-    if (l_iResult < 0)
+    if (l_ulReturn < 0)
     {
-        X_LOG_TRACE("networkWaitForActivity: select() failed with error %d", errno);
+        X_LOG_TRACE("select() failed with error %d", errno);
         return NETWORK_ERROR;
     }
 
-    if (l_iResult == 0)
+    if (l_ulReturn == 0)
     {
-        X_LOG_TRACE("networkWaitForActivity: Timeout, no events");
+        X_LOG_TRACE("Timeout, no events");
         return 0; // Timeout, no events
     }
 
@@ -605,7 +633,9 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
     return 1;
 }
 
-// Get error string
+////////////////////////////////////////////////////////////
+/// networkGetErrorString
+////////////////////////////////////////////////////////////
 const char *networkGetErrorString(int p_iError)
 {
     switch (p_iError) 
@@ -625,7 +655,9 @@ const char *networkGetErrorString(int p_iError)
     }
 }
 
-// Check if socket is connected
+////////////////////////////////////////////////////////////
+/// networkIsConnected
+////////////////////////////////////////////////////////////
 bool networkIsConnected(NetworkSocket *p_pSocket)
 {
     if (!p_pSocket)
@@ -634,7 +666,9 @@ bool networkIsConnected(NetworkSocket *p_pSocket)
     return p_pSocket->t_bConnected;
 }
 
-// Get TLS connection information
+////////////////////////////////////////////////////////////
+/// networkGetSecurityInfo
+////////////////////////////////////////////////////////////
 int networkGetSecurityInfo(NetworkSocket *p_pSocket, char *p_pCipherName, unsigned long p_ulSize)
 {
     if (!p_pSocket || !p_pSocket->t_pTlsEngine || !p_pCipherName)

@@ -332,7 +332,10 @@ int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTi
 int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
 {
     if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    {
+        X_LOG_TRACE("Invalid socket");
         return NETWORK_INVALID_PARAM;
+    }
 
     fd_set l_tReadSet;
     FD_ZERO(&l_tReadSet);
@@ -351,10 +354,13 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
         return NETWORK_ERROR;
 
     if (l_iResult == 0)
-        return 0; // Timeout, no events
+    {
+        X_LOG_TRACE("Timeout, no events");
+        return NETWORK_TIMEOUT; 
+    }
 
-    // Socket is ready for reading
-    return 1;
+    X_LOG_TRACE("Socket is ready for reading");
+    return NETWORK_OK;
 }
 
 //////////////////////////////////
@@ -362,7 +368,8 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
 //////////////////////////////////
 const char *networkGetErrorString(int p_iError)
 {
-    switch (p_iError) {
+    switch (p_iError) 
+    {
     case NETWORK_OK:
         return "Success";
     case NETWORK_ERROR:
@@ -382,7 +389,10 @@ const char *networkGetErrorString(int p_iError)
 bool networkIsConnected(NetworkSocket *p_pSocket)
 {
     if (!p_pSocket)
+    {
+        X_LOG_TRACE("networkIsConnected: Invalid socket");
         return false;
+    }
 
     return p_pSocket->t_bConnected;
 }

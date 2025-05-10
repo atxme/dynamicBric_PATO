@@ -51,7 +51,7 @@ typedef enum
 } TLS_ECC_Curve;
 
 // TLS Engine context
-typedef struct 
+typedef struct tlsEngine_t
 {
     WOLFSSL_CTX* t_CipherCtx;   // wolfSSL context
     WOLFSSL* t_SslSession;      // wolfSSL session
@@ -63,7 +63,8 @@ typedef struct
 } TLS_Engine;
 
 // TLS configuration structure
-typedef struct {
+typedef struct tlsConfig_t
+{
     TLS_Version t_eTlsVersion;  // TLS version to use
     TLS_ECC_Curve t_eEccCurve;     // ECC curve to use
     bool t_bVerifyPeer;           // Verify peer certificate
@@ -81,60 +82,60 @@ typedef struct {
 
 //////////////////////////////////
 /// @brief Initialize the TLS engine
-/// @param p_pEngine Pointer to TLS_Engine structure to initialize
+/// @param p_pttEngine Pointer to TLS_Engine structure to initialize
 /// @param p_iSocketFd Socket file descriptor
-/// @param p_pConfig TLS configuration
+/// @param p_kpttConfig TLS configuration
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineInit(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Config* p_pConfig);
+unsigned long tlsEngineInit(TLS_Engine* p_pttEngine, int p_iSocketFd, const TLS_Config* p_kpttConfig);
 
 //////////////////////////////////
 /// @brief Perform TLS handshake for client connection
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineConnect(TLS_Engine* p_pEngine);
+unsigned long tlsEngineConnect(TLS_Engine* p_pttEngine);
 
 //////////////////////////////////
 /// @brief Accept TLS connection as server
-/// @param p_pEngine TLS engine for new connection
+/// @param p_pttEngine TLS engine for new connection
 /// @param p_iSocketFd Socket file descriptor for the accepted connection
 /// @param p_pListenEngine TLS engine with server context
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineAccept(TLS_Engine* p_pEngine, int p_iSocketFd, const TLS_Engine* p_pListenEngine);
+unsigned long tlsEngineAccept(TLS_Engine* p_pttEngine, int p_iSocketFd, const TLS_Engine* p_pListenEngine);
 
 //////////////////////////////////
 /// @brief Send data over TLS connection
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @param p_pBuffer Data buffer
 /// @param p_ulSize Data size
 /// @return int Bytes sent or error code
 //////////////////////////////////
-int tlsEngineSend(TLS_Engine* p_pEngine, const void* p_pBuffer, unsigned long p_ulSize);
+unsigned long tlsEngineSend(TLS_Engine* p_pttEngine, const void* p_pBuffer, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief Receive data over TLS connection
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @param p_pBuffer Data buffer
 /// @param p_ulSize Buffer size
 /// @return int Bytes received or error code
 //////////////////////////////////
-int tlsEngineReceive(TLS_Engine* p_pEngine, void* p_pBuffer, unsigned long p_ulSize);
+unsigned long tlsEngineReceive(TLS_Engine* p_pttEngine, void* p_pBuffer, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief Close TLS connection
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineClose(TLS_Engine* p_pEngine);
+unsigned long tlsEngineClose(TLS_Engine* p_pttEngine);
 
 //////////////////////////////////
 /// @brief Clean up TLS engine resources
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineCleanup(TLS_Engine* p_pEngine);
+unsigned long tlsEngineCleanup(TLS_Engine* p_pttEngine);
 
 //////////////////////////////////
 /// @brief Get last TLS error description
@@ -145,35 +146,35 @@ const char* tlsEngineGetErrorString(int p_iError);
 
 //////////////////////////////////
 /// @brief Check if TLS is enabled
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @return bool True if TLS is enabled and initialized
 //////////////////////////////////
-bool tlsEngineIsEnabled(const TLS_Engine* p_pEngine);
+bool tlsEngineIsEnabled(const TLS_Engine* p_pttEngine);
 
 //////////////////////////////////
 /// @brief Get TLS connection info
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @param p_pCipherName Buffer to store cipher name
 /// @param p_ulSize Buffer size
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineGetConnectionInfo(const TLS_Engine* p_pEngine, char* p_pCipherName, unsigned long p_ulSize);
+unsigned long tlsEngineGetConnectionInfo(const TLS_Engine* p_pttEngine, char* p_pCipherName, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief Get the certificate presented by the peer
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @param p_pCertInfo Buffer to store certificate information
 /// @param p_ulSize Buffer size
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineGetPeerCertificate(TLS_Engine* p_pEngine, char* p_pCertInfo, unsigned long p_ulSize);
+unsigned long tlsEngineGetPeerCertificate(TLS_Engine* p_pttEngine, char* p_pCertInfo, unsigned long p_ulSize);
 
 //////////////////////////////////
 /// @brief Check if the private key with the PEM format
-/// @param p_pEngine TLS engine
+/// @param p_pttEngine TLS engine
 /// @param p_pKeyPath Path to the private key file
 /// @return int Error code
 //////////////////////////////////
-int tlsEngineCheckPrivateKey(TLS_Engine* p_pEngine, const char* p_pKeyPath);
+unsigned long tlsEngineCheckPrivateKey(TLS_Engine* p_pttEngine, const char* p_pKeyPath);
 
 #endif // TLS_ENGINE_H_

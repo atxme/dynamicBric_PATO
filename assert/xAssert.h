@@ -14,9 +14,10 @@
 #include <stdint.h>
 
 // Assert modes
-#define XOS_ASSERT_MODE_CONTINUE  0
-#define XOS_ASSERT_MODE_EXIT      1
-#define XOS_ASSERT_MODE_LOOP      2
+#define XOS_ASSERT_MODE_CONTINUE    0x00000000
+#define XOS_ASSERT_MODE_EXIT        0x00000001
+#define XOS_ASSERT_MODE_LOOP        0x00000002
+
 
 // Assert macros
 #define X_ASSERT(expr) \
