@@ -6,6 +6,11 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of build,
 
 set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
 
+# Enable colored output for Ninja
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+    set(CMAKE_COLOR_DIAGNOSTICS ON)
+endif()
+
 # Option to enable TLS support
 option(USE_TLS "Enable TLS support (requires WolfSSL)" OFF)
 
@@ -147,7 +152,6 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE
         -Wall
         -Wextra
-        -Wpedantic
         -Wno-variadic-macros
         $<$<CONFIG:Debug>:-g3 -O0 -fno-omit-frame-pointer>
         $<$<CONFIG:Release>:-O3 -march=native -flto>

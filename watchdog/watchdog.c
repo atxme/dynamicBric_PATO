@@ -5,7 +5,7 @@
 // Written : 02/05/2025
 ////////////////////////////////////////////////////////////
 
-#define _POSIX_C_SOURCE 199309L
+
 #define _BSD_SOURCE       // Pour usleep
 #define _DEFAULT_SOURCE   // Alternative pour les systèmes plus récents
 
@@ -79,7 +79,7 @@ static void timer_handler(union sigval sv)
     }
 
     // Protéger l'accès avec le mutex
-    if (mutexLock(&watchdog->mutex) != MUTEX_OK)
+    if ((unsigned int)mutexLock(&watchdog->mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in timer handler");
         return;
@@ -135,7 +135,7 @@ int watchdog_init(int timeout_ms)
     g_watchdog.terminate = 0;
 
     // Initialisation du mutex
-    if (mutexCreate(&g_watchdog.mutex) != MUTEX_OK)
+    if ((unsigned int)mutexCreate(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to create watchdog mutex");
         return -1;
@@ -168,9 +168,9 @@ int watchdog_init(int timeout_ms)
     g_watchdog.task_ctx.task = watchdog_thread;
     g_watchdog.task_ctx.arg = &g_watchdog;
     
-    int ret = osTaskCreate(&g_watchdog.task_ctx);
-    if (ret != OS_TASK_SUCCESS) {
-        X_LOG_TRACE("Failed to create watchdog thread: %d", ret);
+    unsigned long l_ulReturn = osTaskCreate(&g_watchdog.task_ctx);
+    if (l_ulReturn != OS_TASK_SUCCESS) {
+        X_LOG_TRACE("Failed to create watchdog thread: %d", l_ulReturn);
         timer_delete(g_timer_id);
         mutexDestroy(&g_watchdog.mutex);
         g_is_initialized = 0;
@@ -205,7 +205,7 @@ void watchdog_stop(void)
     }
 
     // Protéger l'accès avec le mutex
-    if (mutexLock(&g_watchdog.mutex) != MUTEX_OK)
+    if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in watchdog_stop");
         return;
@@ -268,7 +268,7 @@ int watchdog_ping(void)
     }
 
     // Protéger l'accès avec le mutex
-    if (mutexLock(&g_watchdog.mutex) != MUTEX_OK)
+    if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in watchdog_ping");
         return -1;
@@ -311,7 +311,7 @@ bool watchdog_has_expired(void)
     bool result = false;
 
     // Protéger l'accès avec le mutex
-    if (mutexLock(&g_watchdog.mutex) != MUTEX_OK)
+    if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in watchdog_has_expired");
         return false;
@@ -332,7 +332,7 @@ void watchdog_set_expiry_handler(void (*callback)(void))
     // Protéger l'accès avec le mutex si initialisé
     if (g_is_initialized)
     {
-        if (mutexLock(&g_watchdog.mutex) != MUTEX_OK)
+        if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
         {
             X_LOG_TRACE("Failed to lock mutex in watchdog_set_expiry_handler");
             return;

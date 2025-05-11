@@ -83,10 +83,10 @@ NetworkAddress networkMakeAddress(const char *p_pcAddress, unsigned short p_usPo
 //////////////////////////////////
 /// networkBind
 //////////////////////////////////
-int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
+int networkBind(NetworkSocket *p_ptSocket, const NetworkAddress *p_pAddress)
 {
     // Check pointers
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0)
         return NETWORK_INVALID_PARAM;
 
     if (!p_pAddress)
@@ -107,7 +107,7 @@ int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
         l_tAddr.sin_addr.s_addr = INADDR_ANY;
     }
 
-    if (bind(p_pSocket->t_iSocketFd, (struct sockaddr *)&l_tAddr, sizeof(l_tAddr)) < 0)
+    if (bind(p_ptSocket->t_iSocketFd, (struct sockaddr *)&l_tAddr, sizeof(l_tAddr)) < 0)
         return NETWORK_ERROR;
 
     return NETWORK_OK;
@@ -116,14 +116,14 @@ int networkBind(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 //////////////////////////////////
 /// networkListen
 //////////////////////////////////
-int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
+int networkListen(NetworkSocket *p_ptSocket, int p_iBacklog)
 {
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0)
         return NETWORK_INVALID_PARAM;
 
     int l_iBacklog = (p_iBacklog > 0) ? p_iBacklog : NETWORK_MAX_PENDING;
 
-    if (listen(p_pSocket->t_iSocketFd, l_iBacklog) < 0)
+    if (listen(p_ptSocket->t_iSocketFd, l_iBacklog) < 0)
         return NETWORK_ERROR;
 
     return NETWORK_OK;
@@ -132,19 +132,19 @@ int networkListen(NetworkSocket *p_pSocket, int p_iBacklog)
 //////////////////////////////////
 /// networkAccept
 //////////////////////////////////
-NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClientAddress)
+NetworkSocket *networkAccept(NetworkSocket *p_ptSocket, NetworkAddress *p_pClientAddress)
 {
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0) {
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0) {
         X_LOG_TRACE("networkAccept: Invalid socket");
         return NULL;
     }
 
-    X_LOG_TRACE("networkAccept: Accepting new connection on socket %d", p_pSocket->t_iSocketFd);
+    X_LOG_TRACE("networkAccept: Accepting new connection on socket %d", p_ptSocket->t_iSocketFd);
     
     struct sockaddr_in l_tClientAddr;
     socklen_t l_iAddrLen = sizeof(l_tClientAddr);
 
-    int l_iClientFd = accept(p_pSocket->t_iSocketFd, (struct sockaddr *)&l_tClientAddr, &l_iAddrLen);
+    int l_iClientFd = accept(p_ptSocket->t_iSocketFd, (struct sockaddr *)&l_tClientAddr, &l_iAddrLen);
     if (l_iClientFd < 0) {
         X_LOG_TRACE("networkAccept: accept() failed with error %d", errno);
         return NULL;
@@ -183,9 +183,9 @@ NetworkSocket *networkAccept(NetworkSocket *p_pSocket, NetworkAddress *p_pClient
 //////////////////////////////////
 /// networkConnect
 //////////////////////////////////
-int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
+int networkConnect(NetworkSocket *p_ptSocket, const NetworkAddress *p_pAddress)
 {
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0)
         return NETWORK_INVALID_PARAM;
 
     if (!p_pAddress)
@@ -200,13 +200,13 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
         return NETWORK_INVALID_PARAM;
 
     X_LOG_TRACE("networkConnect: Connecting to %s:%d", p_pAddress->t_cAddress, p_pAddress->t_usPort);
-    if (connect(p_pSocket->t_iSocketFd, (struct sockaddr *)&l_tAddr, sizeof(l_tAddr)) < 0) {
+    if (connect(p_ptSocket->t_iSocketFd, (struct sockaddr *)&l_tAddr, sizeof(l_tAddr)) < 0) {
         X_LOG_TRACE("networkConnect: TCP connection failed with error %d", errno);
-        p_pSocket->t_bConnected = false;
+        p_ptSocket->t_bConnected = false;
         return NETWORK_ERROR;
     }
 
-    p_pSocket->t_bConnected = true;
+    p_ptSocket->t_bConnected = true;
     X_LOG_TRACE("networkConnect: Connection successful");
     return NETWORK_OK;
 }
@@ -214,12 +214,12 @@ int networkConnect(NetworkSocket *p_pSocket, const NetworkAddress *p_pAddress)
 //////////////////////////////////
 /// networkSend
 //////////////////////////////////
-int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p_ulSize)
+int networkSend(NetworkSocket *p_ptSocket, const void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
     
     // Validate essential parameters
-    if (!p_pSocket || !p_pBuffer)
+    if (!p_ptSocket || !p_pBuffer)
         return NETWORK_INVALID_PARAM;
 
     // Early return for zero size
@@ -227,11 +227,11 @@ int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p
         return 0;
 
     // Lock mutex before accessing socket
-    mutexLock(&p_pSocket->t_Mutex);
+    mutexLock(&p_ptSocket->t_Mutex);
     
     X_LOG_TRACE("networkSend: Sending on socket %d, %lu bytes", 
-               p_pSocket->t_iSocketFd, p_ulSize);
-    result = send(p_pSocket->t_iSocketFd, p_pBuffer, p_ulSize, 0);
+               p_ptSocket->t_iSocketFd, p_ulSize);
+    result = send(p_ptSocket->t_iSocketFd, p_pBuffer, p_ulSize, 0);
     if (result < 0) {
         X_LOG_TRACE("networkSend: Send failed with error code %d", errno);
         result = NETWORK_ERROR;
@@ -240,7 +240,7 @@ int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p
     }
     
     // Unlock mutex after socket operation
-    mutexUnlock(&p_pSocket->t_Mutex);
+    mutexUnlock(&p_ptSocket->t_Mutex);
     
     return result;
 }
@@ -248,12 +248,12 @@ int networkSend(NetworkSocket *p_pSocket, const void *p_pBuffer, unsigned long p
 //////////////////////////////////
 /// networkReceive
 //////////////////////////////////
-int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ulSize)
+int networkReceive(NetworkSocket *p_ptSocket, void *p_pBuffer, unsigned long p_ulSize)
 {
     int result;
     
     // Validate essential parameters
-    if (!p_pSocket || !p_pBuffer)
+    if (!p_ptSocket || !p_pBuffer)
         return NETWORK_INVALID_PARAM;
 
     // Early return for zero size
@@ -261,11 +261,11 @@ int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ul
         return 0;
 
     // Lock mutex before accessing socket
-    mutexLock(&p_pSocket->t_Mutex);
+    mutexLock(&p_ptSocket->t_Mutex);
     
     X_LOG_TRACE("networkReceive: Receiving on socket %d, buffer size %lu", 
-               p_pSocket->t_iSocketFd, p_ulSize);
-    result = recv(p_pSocket->t_iSocketFd, p_pBuffer, p_ulSize, 0);
+               p_ptSocket->t_iSocketFd, p_ulSize);
+    result = recv(p_ptSocket->t_iSocketFd, p_pBuffer, p_ulSize, 0);
     if (result < 0) {
         X_LOG_TRACE("networkReceive: Receive failed with error code %d", errno);
         result = NETWORK_ERROR;
@@ -276,7 +276,7 @@ int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ul
     }
     
     // Unlock mutex after socket operation
-    mutexUnlock(&p_pSocket->t_Mutex);
+    mutexUnlock(&p_ptSocket->t_Mutex);
     
     return result;
 }
@@ -284,24 +284,24 @@ int networkReceive(NetworkSocket *p_pSocket, void *p_pBuffer, unsigned long p_ul
 //////////////////////////////////
 /// networkCloseSocket
 //////////////////////////////////
-int networkCloseSocket(NetworkSocket *p_pSocket)
+int networkCloseSocket(NetworkSocket *p_ptSocket)
 {
-    if (!p_pSocket)
+    if (!p_ptSocket)
         return NETWORK_INVALID_PARAM;
 
-    if (p_pSocket->t_iSocketFd >= 0) {
-        X_LOG_TRACE("networkCloseSocket: Closing socket %d", p_pSocket->t_iSocketFd);
-        close(p_pSocket->t_iSocketFd);
-        p_pSocket->t_iSocketFd = -1;
+    if (p_ptSocket->t_iSocketFd >= 0) {
+        X_LOG_TRACE("networkCloseSocket: Closing socket %d", p_ptSocket->t_iSocketFd);
+        close(p_ptSocket->t_iSocketFd);
+        p_ptSocket->t_iSocketFd = -1;
     }
 
-    p_pSocket->t_bConnected = false;
+    p_ptSocket->t_bConnected = false;
 
     // Destroy mutex before freeing socket
-    mutexDestroy(&p_pSocket->t_Mutex);
+    mutexDestroy(&p_ptSocket->t_Mutex);
     
     // Free the socket structure
-    free(p_pSocket);
+    free(p_ptSocket);
 
     return NETWORK_OK;
 }
@@ -309,9 +309,9 @@ int networkCloseSocket(NetworkSocket *p_pSocket)
 //////////////////////////////////
 /// networkSetTimeout
 //////////////////////////////////
-int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTimeout)
+int networkSetTimeout(NetworkSocket *p_ptSocket, int p_iTimeoutMs, bool p_bSendTimeout)
 {
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0)
         return NETWORK_INVALID_PARAM;
 
     struct timeval l_tTimeout;
@@ -320,7 +320,7 @@ int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTi
 
     int l_iOptionName = p_bSendTimeout ? SO_SNDTIMEO : SO_RCVTIMEO;
 
-    if (setsockopt(p_pSocket->t_iSocketFd, SOL_SOCKET, l_iOptionName, &l_tTimeout, sizeof(l_tTimeout)) < 0)
+    if (setsockopt(p_ptSocket->t_iSocketFd, SOL_SOCKET, l_iOptionName, &l_tTimeout, sizeof(l_tTimeout)) < 0)
         return NETWORK_ERROR;
 
     return NETWORK_OK;
@@ -329,9 +329,9 @@ int networkSetTimeout(NetworkSocket *p_pSocket, int p_iTimeoutMs, bool p_bSendTi
 //////////////////////////////////
 /// networkWaitForActivity
 //////////////////////////////////
-int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
+int networkWaitForActivity(NetworkSocket *p_ptSocket, int p_iTimeoutMs)
 {
-    if (!p_pSocket || p_pSocket->t_iSocketFd < 0)
+    if (!p_ptSocket || p_ptSocket->t_iSocketFd < 0)
     {
         X_LOG_TRACE("Invalid socket");
         return NETWORK_INVALID_PARAM;
@@ -339,7 +339,7 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
 
     fd_set l_tReadSet;
     FD_ZERO(&l_tReadSet);
-    FD_SET(p_pSocket->t_iSocketFd, &l_tReadSet);
+    FD_SET(p_ptSocket->t_iSocketFd, &l_tReadSet);
 
     struct timeval l_tTimeout, *l_pTimeout = NULL;
     if (p_iTimeoutMs >= 0) {
@@ -348,7 +348,7 @@ int networkWaitForActivity(NetworkSocket *p_pSocket, int p_iTimeoutMs)
         l_pTimeout = &l_tTimeout;
     }
 
-    int l_iResult = select(p_pSocket->t_iSocketFd + 1, &l_tReadSet, NULL, NULL, l_pTimeout);
+    int l_iResult = select(p_ptSocket->t_iSocketFd + 1, &l_tReadSet, NULL, NULL, l_pTimeout);
 
     if (l_iResult < 0)
         return NETWORK_ERROR;
@@ -386,13 +386,13 @@ const char *networkGetErrorString(int p_iError)
 //////////////////////////////////
 /// networkIsConnected
 //////////////////////////////////
-bool networkIsConnected(NetworkSocket *p_pSocket)
+bool networkIsConnected(NetworkSocket *p_ptSocket)
 {
-    if (!p_pSocket)
+    if (!p_ptSocket)
     {
         X_LOG_TRACE("networkIsConnected: Invalid socket");
         return false;
     }
 
-    return p_pSocket->t_bConnected;
+    return p_ptSocket->t_bConnected;
 }
