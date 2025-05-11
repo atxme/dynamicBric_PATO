@@ -35,32 +35,27 @@ endif()
 
 project(dynamicBric_PATO 
     VERSION 1.0
-    LANGUAGES C CXX
+    LANGUAGES C
     DESCRIPTION "Dynamic Bric PATO Library"
 )
 
 # Debug configuration
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g3 -O0")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3 -O0")
 
 # Release configuration
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 
 # RelWithDebInfo configuration
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O2 -g -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -g -DNDEBUG")
 
 # MinSizeRel configuration
 set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -Os -DNDEBUG")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -Os -DNDEBUG")
 
 # Force absolute path
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 
 # Recursively find all source files, excluding test directories
 file(GLOB_RECURSE ALL_C_SOURCES "${PROJECT_ROOT}/*.c")
-file(GLOB_RECURSE ALL_CPP_SOURCES "${PROJECT_ROOT}/*.cpp")
 file(GLOB_RECURSE ALL_HEADERS "${PROJECT_ROOT}/*.h")
 
 # Create lists for TLS-specific files
@@ -68,14 +63,14 @@ set(TLS_SOURCES "")
 set(NON_TLS_SOURCES "")
 
 # Filter out test files and separate TLS files
-foreach(SOURCE_FILE ${ALL_C_SOURCES} ${ALL_CPP_SOURCES})
+foreach(SOURCE_FILE ${ALL_C_SOURCES})
     # Skip test files
     if(SOURCE_FILE MATCHES ".*test.*")
         continue()
     endif()
     
     # Skip CMake compiler identification files
-    if(SOURCE_FILE MATCHES ".*CMakeCCompilerId\\.c$|.*CMakeCXXCompilerId\\.cpp$")
+    if(SOURCE_FILE MATCHES ".*CMakeCCompilerId\\.c$")
         continue()
     endif()
     
@@ -179,15 +174,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:MinSizeRel>:NDEBUG>
 )
 
-# C and C++ standards
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+# C standard
 set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD 17
     C_STANDARD_REQUIRED ON
     C_EXTENSIONS OFF
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
 )
 
 # Unix specific settings
@@ -232,7 +223,6 @@ endforeach()
 message(STATUS "Configuration Summary:")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  TLS Support: ${USE_TLS}")
-message(STATUS "  C++ Standard: 20")
 message(STATUS "  C Standard: 17")
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 if(USE_TLS)

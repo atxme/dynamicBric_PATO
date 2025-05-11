@@ -19,15 +19,8 @@
 #include "xAssert.h"
 #include <pthread.h>
 #include <sys/time.h>
-#define _POSIX_C_SOURCE 200809L
-
-#ifdef __cplusplus
-#include <atomic>   //only for test lib and C++ 20
-#else
 #include <stdatomic.h>
-#endif
-
-
+#define _POSIX_C_SOURCE 200809L
 
 #define OS_CRITICAL_SUCCESS 0xC6FB2A70
 #define OS_CRITICAL_ERROR 0xC6FB2A71
@@ -48,13 +41,8 @@
 //////////////////////////////////
 typedef struct {
     pthread_mutex_t critical; // section critique
-#ifdef __cplusplus
-    std::atomic<unsigned short> a_usLockCounter; // compteur de verrous
-    std::atomic<bool> a_bLock;                  // �tat du verrou
-#else
     _Atomic unsigned short a_usLockCounter;     // compteur de verrous
-    _Atomic bool a_bLock;                         // �tat du verrou
-#endif
+    _Atomic bool a_bLock;                       // état du verrou
 } t_osCriticalCtx;
 
 

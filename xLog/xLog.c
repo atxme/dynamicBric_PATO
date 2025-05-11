@@ -14,12 +14,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-
-#ifdef __cplusplus
-#include <atomic>   //only for test lib and C++ 20
-#else
 #include <stdatomic.h> 
-#endif
 
 // Logger state
 typedef enum {
@@ -32,11 +27,7 @@ static t_logCtx s_tLogConfig = { 0 };
 static t_MutexCtx s_tLogMutex;
 static FILE* s_ptLogFile = NULL;
 
-#ifdef __cplusplus
-static std::atomic<t_logState> s_eLogState = ATOMIC_VAR_INIT(XOS_LOG_STATE_UNINITIALIZED);
-#else
 static atomic_int s_eLogState = ATOMIC_VAR_INIT(XOS_LOG_STATE_UNINITIALIZED);
-#endif
 
 ////////////////////////////////////////////////////////////
 /// xLogInit

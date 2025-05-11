@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10)
 
 #force ninja generator
 set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
@@ -24,11 +24,20 @@ else()
     message(STATUS "TLS support disabled")
 endif()
 
-project(dynamicBric_PATO_test 
+project(dynamicBric_PATO_Tests
     VERSION 1.0
-    LANGUAGES C CXX
-    DESCRIPTION "Dynamic Bric PATO Tests"
+    LANGUAGES C
+    DESCRIPTION "Dynamic Bric PATO Tests (C only)"
 )
+
+message(STATUS "C++ tests are disabled. The project has been converted to C only.")
+
+# Si vous souhaitez créer des tests en C pur, vous pouvez les implémenter ici.
+# Par exemple:
+#
+# add_executable(test_c_example test_c_example.c)
+# target_link_libraries(test_c_example dynamicBric_PATO)
+# add_test(NAME c_example COMMAND test_c_example)
 
 # Find GTest
 find_package(GTest REQUIRED)
