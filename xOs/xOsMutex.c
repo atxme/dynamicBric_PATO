@@ -47,7 +47,8 @@ int mutexLock(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-    if (pthread_mutex_lock(&p_ptMutex->t_mutex) != 0) {
+    if (pthread_mutex_lock(&p_ptMutex->t_mutex) != 0) 
+    {
         return MUTEX_ERROR;
     }
 
@@ -63,10 +64,12 @@ int mutexTryLock(t_MutexCtx* p_ptMutex)
     X_ASSERT(p_ptMutex != NULL);
 
     int l_iResult = pthread_mutex_trylock(&p_ptMutex->t_mutex);
-    if (l_iResult == EBUSY) {
+    if (l_iResult == EBUSY) 
+    {
         return MUTEX_TIMEOUT;
     }
-    if (l_iResult != 0) {
+    if (l_iResult != 0) 
+    {
         return MUTEX_ERROR;
     }
 
@@ -87,10 +90,12 @@ int mutexLockTimeout(t_MutexCtx* p_ptMutex, unsigned long p_ulTimeout)
     l_tTimeout.tv_nsec += (p_ulTimeout % 1000) * 1000000;
 
     int l_iResult = pthread_mutex_timedlock(&p_ptMutex->t_mutex, &l_tTimeout);
-    if (l_iResult == ETIMEDOUT) {
+    if (l_iResult == ETIMEDOUT) 
+    {
         return MUTEX_TIMEOUT;
     }
-    if (l_iResult != 0) {
+    if (l_iResult != 0) 
+    {
         return MUTEX_ERROR;
     }
 
@@ -105,7 +110,8 @@ int mutexUnlock(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-    if (pthread_mutex_unlock(&p_ptMutex->t_mutex) != 0) {
+    if (pthread_mutex_unlock(&p_ptMutex->t_mutex) != 0) 
+    {
         return MUTEX_ERROR;
     }
 
@@ -120,7 +126,8 @@ int mutexDestroy(t_MutexCtx* p_ptMutex)
 {
     X_ASSERT(p_ptMutex != NULL);
 
-    if (pthread_mutex_destroy(&p_ptMutex->t_mutex) != 0) {
+    if (pthread_mutex_destroy(&p_ptMutex->t_mutex) != 0) 
+    {
         return MUTEX_ERROR;
     }
 

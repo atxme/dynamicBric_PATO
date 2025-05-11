@@ -364,8 +364,8 @@ unsigned long tlsEngineAccept(TLS_Engine* p_pttEngine, int p_iSocketFd, const TL
         return TLS_ERROR;
     }
     
-    // Désactiver la vérification des certificats pour l'acceptation
-    // Cela permettra de contourner le problème d'erreur ASN
+    // Disable certificate verification for acceptance
+    // This will help bypass the ASN error issue
     wolfSSL_set_verify(p_pttEngine->t_SslSession, WOLFSSL_VERIFY_NONE, NULL);
     X_LOG_TRACE("Peer verification temporarily disabled for handshake");
     
@@ -376,7 +376,7 @@ unsigned long tlsEngineAccept(TLS_Engine* p_pttEngine, int p_iSocketFd, const TL
     wolfSSL_SetIOReadCtx(p_pttEngine->t_SslSession, &p_pttEngine->t_iSocketFd);
     wolfSSL_SetIOWriteCtx(p_pttEngine->t_SslSession, &p_pttEngine->t_iSocketFd);
     
-    // Debug: Afficher des informations supplémentaires sur le contexte SSL
+    // Debug: Display additional information about SSL context
     X_LOG_TRACE("Debug info: p_pttEngine socket: %d, listening socket: %d", 
                p_pttEngine->t_iSocketFd, p_pListenEngine->t_iSocketFd);
     
@@ -384,7 +384,7 @@ unsigned long tlsEngineAccept(TLS_Engine* p_pttEngine, int p_iSocketFd, const TL
     X_LOG_TRACE("Performing TLS accept handshake");
     int ret = wolfSSL_accept(p_pttEngine->t_SslSession);
     
-    // Obtenir et enregistrer plus d'informations d'erreur en cas d'échec
+    // Get and log more error information in case of failure
     if (ret != WOLFSSL_SUCCESS) 
     {
         int err = wolfSSL_get_error(p_pttEngine->t_SslSession, ret);

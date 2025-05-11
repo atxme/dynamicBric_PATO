@@ -7,11 +7,10 @@
 // Intellectual property of Christophe Benedetti
 ////////////////////////////////////////////////////////////
 
-// Ces définitions sont déjà incluses dans les options de compilation du projet
-// (CMakeLists.txt), donc nous n'avons pas besoin de les redéfinir ici
+
 
 #include "xOsSemaphore.h"
-#include <time.h>  // Pour CLOCK_REALTIME
+#include <time.h>  // For CLOCK_REALTIME
 
 ////////////////////////////////////////////////////////////
 /// osSemInit
@@ -22,24 +21,24 @@ int osSemInit(t_OSSemCtx* p_pttOSSem, int p_iInitValue, const char* p_pcName)
         return OS_SEM_ERROR;
     }
 
-    // Réinitialiser la structure
+    // Reset the structure
     memset(p_pttOSSem, 0, sizeof(t_OSSemCtx));
     
     p_pttOSSem->value = p_iInitValue;
     p_pttOSSem->name = p_pcName;
     
-    // Création du sémaphore
+    // Create the semaphore
     if (p_pcName != NULL) {
-        // Sémaphore nommé
+        // Named semaphore
         sem_t* namedSem = sem_open(p_pcName, O_CREAT, 0666, p_iInitValue);
         if (namedSem == SEM_FAILED) {
             return OS_SEM_ERROR;
         }
-        // Pour les sémaphores nommés, on stocke le pointeur retourné par sem_open
+        // For named semaphores, store the pointer returned by sem_open
         p_pttOSSem->sem_handle = namedSem;
         p_pttOSSem->is_named = 1;
     } else {
-        // Sémaphore anonyme
+        // Anonymous semaphore
         if (sem_init(&p_pttOSSem->sem, 0, p_iInitValue) != 0) {
             return OS_SEM_ERROR;
         }
@@ -61,14 +60,14 @@ int osSemDestroy(t_OSSemCtx* p_pttOSSem)
     
     int result;
     if (p_pttOSSem->is_named) {
-        // Sémaphore nommé
+        // Named semaphore
         result = sem_close(p_pttOSSem->sem_handle);
         if (result == 0 && p_pttOSSem->name != NULL) {
-            // Suppression du sémaphore nommé du système si nous sommes le dernier utilisateur
+            // Remove the named semaphore from the system if we are the last user
             sem_unlink(p_pttOSSem->name);
         }
     } else {
-        // Sémaphore anonyme
+        // Anonymous semaphore
         result = sem_destroy(&p_pttOSSem->sem);
     }
     
@@ -100,7 +99,7 @@ int osSemWait(t_OSSemCtx* p_pttOSSem)
         return OS_SEM_ERROR;
     }
     
-    // Mettre à jour la valeur (approximative, car il peut y avoir des accès concurrents)
+    // Update the value (approximate, as there may be concurrent accesses)
     osSemGetValue(p_pttOSSem, &p_pttOSSem->value);
     
     return OS_SEM_SUCCESS;
@@ -120,11 +119,11 @@ int osSemWaitTimeout(t_OSSemCtx* p_pttOSSem, unsigned long p_ulTimeoutMs)
         return OS_SEM_ERROR;
     }
     
-    // Convertir millisecondes en secondes et nanosecondes
+    // Convert milliseconds to seconds and nanoseconds
     ts.tv_sec += p_ulTimeoutMs / 1000;
     ts.tv_nsec += (p_ulTimeoutMs % 1000) * 1000000;
     
-    // Normaliser les nanosecondes (assurer qu'elles restent < 1 seconde)
+    // Normalize nanoseconds (ensure they remain < 1 second)
     if (ts.tv_nsec >= 1000000000) {
         ts.tv_sec += 1;
         ts.tv_nsec -= 1000000000;
@@ -144,7 +143,7 @@ int osSemWaitTimeout(t_OSSemCtx* p_pttOSSem, unsigned long p_ulTimeoutMs)
         return OS_SEM_ERROR;
     }
     
-    // Mettre à jour la valeur (approximative)
+    // Update the value (approximate)
     osSemGetValue(p_pttOSSem, &p_pttOSSem->value);
     
     return OS_SEM_SUCCESS;
@@ -173,7 +172,7 @@ int osSemTryWait(t_OSSemCtx* p_pttOSSem)
         return OS_SEM_ERROR;
     }
     
-    // Mettre à jour la valeur (approximative)
+    // Update the value (approximate)
     osSemGetValue(p_pttOSSem, &p_pttOSSem->value);
     
     return OS_SEM_SUCCESS;
@@ -199,7 +198,7 @@ int osSemPost(t_OSSemCtx* p_pttOSSem)
         return OS_SEM_ERROR;
     }
     
-    // Mettre à jour la valeur (approximative)
+    // Update the value (approximate)
     osSemGetValue(p_pttOSSem, &p_pttOSSem->value);
     
     return OS_SEM_SUCCESS;

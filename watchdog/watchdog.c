@@ -6,8 +6,8 @@
 ////////////////////////////////////////////////////////////
 
 
-#define _BSD_SOURCE       // Pour usleep
-#define _DEFAULT_SOURCE   // Alternative pour les systèmes plus récents
+#define _BSD_SOURCE       // For usleep
+#define _DEFAULT_SOURCE   // Alternative for newer systems
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,19 +18,19 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
-// Inclusions spécifiques pour les timers POSIX
+// Specific inclusions for POSIX timers
 #include <sys/signal.h>
-// Inclusions locales
+// Local inclusions
 #include "watchdog.h"
 #include "xLog.h"
 #include "xOsMutex.h"
 
-// Variables globales
+// Global variables
 static watchdog_t g_watchdog;
 static int g_is_initialized = 0;
 static void (*g_expiry_handler)(void) = NULL;
 
-// Variables privées pour les timers POSIX
+// Private variables for POSIX timers
 static timer_t g_timer_id;
 static struct sigevent g_sev;
 static struct itimerspec g_its;
@@ -50,16 +50,16 @@ void* watchdog_thread(void *arg)
    
    X_LOG_TRACE("Watchdog thread started");
    
-   // Boucle principale du thread
+   // Main thread loop
    while (!watchdog->terminate) {
-       // Ping le watchdog pour réinitialiser le timer
+       // Ping the watchdog to reset the timer
        l_iRet = watchdog_ping();
        if (l_iRet != 0) {
            X_LOG_TRACE("Watchdog ping failed in thread");
        }
        
-       // Attendre un certain temps avant le prochain ping
-       // Utilisez environ 1/3 du timeout pour garantir plusieurs pings avant expiration
+       // Wait some time before the next ping
+       // Use about 1/3 of the timeout to ensure multiple pings before expiration
        usleep((watchdog->timeout / 3) * 1000);
    }
    
@@ -78,24 +78,24 @@ static void timer_handler(union sigval sv)
         return;
     }
 
-    // Protéger l'accès avec le mutex
+    // Protect access with mutex
     if ((unsigned int)mutexLock(&watchdog->mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in timer handler");
         return;
     }
 
-    // Vérifier si le watchdog est toujours initialisé
+    // Check if the watchdog is still initialized
     if (!g_is_initialized)
     {
         mutexUnlock(&watchdog->mutex);
         return;
     }
 
-    // Marquer le watchdog comme ayant expiré
+    // Mark the watchdog as expired
     watchdog->should_reset = true;
 
-    // Appeler le handler d'expiration si défini
+    // Call the expiry handler if defined
     if (g_expiry_handler != NULL)
     {
         g_expiry_handler();
@@ -103,8 +103,8 @@ static void timer_handler(union sigval sv)
     else
     {
         X_LOG_TRACE("WATCHDOG TIMEOUT - System will restart");
-        // En environnement de production, utilisez une méthode appropriée pour redémarrer
-        // le système plutôt que de quitter brutalement
+        // In production environment, use an appropriate method to restart
+        // the system rather than abruptly exiting
         mutexUnlock(&watchdog->mutex);
         exit(EXIT_FAILURE);
     }
@@ -117,38 +117,38 @@ static void timer_handler(union sigval sv)
 ////////////////////////////////////////////////////////////
 int watchdog_init(int timeout_ms)
 {
-    // Vérifier si déjà initialisé
+    // Check if already initialized
     if (g_is_initialized)
     {
         X_LOG_TRACE("Watchdog already initialized");
         return 0;
     }
 
-    // Configuration du timeout
+    // Timeout configuration
     uint32_t actual_timeout = timeout_ms > 0 ? timeout_ms : WATCHDOG_DEFAULT_TIMEOUT;
 
-    // Initialisation de la structure watchdog
+    // Watchdog structure initialization
     memset(&g_watchdog, 0, sizeof(watchdog_t));
     g_watchdog.timeout = actual_timeout;
     g_watchdog.should_reset = false;
     g_watchdog.is_running = 0;
     g_watchdog.terminate = 0;
 
-    // Initialisation du mutex
+    // Mutex initialization
     if ((unsigned int)mutexCreate(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to create watchdog mutex");
         return -1;
     }
 
-    // Configuration de l'événement pour le timer
+    // Event configuration for the timer
     memset(&g_sev, 0, sizeof(struct sigevent));
-    g_sev.sigev_notify = SIGEV_THREAD;           // Utilise un thread pour traiter l'événement
-    g_sev.sigev_notify_function = timer_handler; // Fonction de callback
-    g_sev.sigev_value.sival_ptr = &g_watchdog;   // Passe la structure watchdog au callback
-    g_sev.sigev_notify_attributes = NULL;        // Utilise les attributs par défaut
+    g_sev.sigev_notify = SIGEV_THREAD;           // Uses a thread to handle the event
+    g_sev.sigev_notify_function = timer_handler; // Callback function
+    g_sev.sigev_value.sival_ptr = &g_watchdog;   // Pass the watchdog structure to the callback
+    g_sev.sigev_notify_attributes = NULL;        // Use default attributes
 
-    // Création du timer
+    // Timer creation
     if (timer_create(CLOCK_MONOTONIC, &g_sev, &g_timer_id) != 0)
     {
         X_LOG_TRACE("Failed to create timer: %s", strerror(errno));
@@ -156,17 +156,17 @@ int watchdog_init(int timeout_ms)
         return -1;
     }
     
-    // Stocker l'ID du timer dans la structure watchdog
+    // Store the timer ID in the watchdog structure
     g_watchdog.timer_id = (void*)g_timer_id;
 
     g_is_initialized = 1;
     X_LOG_TRACE("POSIX timer watchdog initialized (timeout=%dms)", actual_timeout);
 
-    // Créer le thread watchdog
-    g_watchdog.task_ctx.priority = 1; // Haute priorité pour le watchdog
-    g_watchdog.task_ctx.stack_size = 4096; // 4KB devrait être suffisant
-    g_watchdog.task_ctx.task = watchdog_thread;
-    g_watchdog.task_ctx.arg = &g_watchdog;
+    // Create the watchdog thread
+    g_watchdog.task_ctx.t_iPriority = 1;        
+    g_watchdog.task_ctx.t_ulStackSize = 4096; 
+    g_watchdog.task_ctx.t_ptTask = watchdog_thread;
+    g_watchdog.task_ctx.t_ptTaskArg = &g_watchdog;
     
     unsigned long l_ulReturn = osTaskCreate(&g_watchdog.task_ctx);
     if (l_ulReturn != OS_TASK_SUCCESS) {
@@ -179,7 +179,7 @@ int watchdog_init(int timeout_ms)
     
     g_watchdog.is_running = 1;
     
-    // Activer le watchdog immédiatement
+    // Activate the watchdog immediately
     if (watchdog_ping() != 0) {
         X_LOG_TRACE("Failed to start watchdog timer");
         g_watchdog.terminate = 1;
@@ -198,26 +198,26 @@ int watchdog_init(int timeout_ms)
 ////////////////////////////////////////////////////////////
 void watchdog_stop(void)
 {
-    // Vérifier si initialisé
+    // Check if initialized
     if (!g_is_initialized)
     {
         return;
     }
 
-    // Protéger l'accès avec le mutex
+    // Protect access with mutex
     if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in watchdog_stop");
         return;
     }
 
-    // Signaler au thread de terminer
+    // Signal the thread to terminate
     g_watchdog.terminate = 1;
     
-    // Marquer comme non-initialisé pour éviter de nouvelles entrées
+    // Mark as uninitialized to prevent new entries
     g_is_initialized = 0;
 
-    // Désarmer le timer
+    // Disarm the timer
     struct itimerspec its;
     memset(&its, 0, sizeof(struct itimerspec));
 
@@ -226,31 +226,31 @@ void watchdog_stop(void)
         X_LOG_TRACE("Failed to stop timer: %s", strerror(errno));
     }
     
-    // Libérer le mutex pour permettre au thread de se terminer
+    // Release the mutex to allow the thread to terminate
     mutexUnlock(&g_watchdog.mutex);
     
     if (g_watchdog.is_running) {
-        // Attendre que le thread se termine proprement (avec un timeout)
+        // Wait for the thread to terminate properly (with a timeout)
         int wait_count = 0;
         while (g_watchdog.is_running && wait_count < 10) {
             usleep(100000); // 100ms
             wait_count++;
         }
         
-        // Si le thread est toujours en cours, le terminer
+        // If the thread is still running, terminate it
         if (g_watchdog.is_running) {
             X_LOG_TRACE("Forcing watchdog thread termination");
             osTaskEnd(&g_watchdog.task_ctx);
         }
     }
 
-    // Supprimer le timer
+    // Delete the timer
     if (timer_delete(g_timer_id) != 0)
     {
         X_LOG_TRACE("Failed to delete timer: %s", strerror(errno));
     }
 
-    // Détruire le mutex
+    // Destroy the mutex
     mutexDestroy(&g_watchdog.mutex);
 
     X_LOG_TRACE("Watchdog stopped");
@@ -261,34 +261,31 @@ void watchdog_stop(void)
 ////////////////////////////////////////////////////////////
 int watchdog_ping(void)
 {
-    // Vérifier si initialisé
+    // Check if initialized
     if (!g_is_initialized)
     {
+        X_LOG_TRACE("Watchdog not initialized");
         return -1;
     }
 
-    // Protéger l'accès avec le mutex
+    // Protect access with mutex
     if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
     {
         X_LOG_TRACE("Failed to lock mutex in watchdog_ping");
         return -1;
     }
 
-    // Convertir le timeout en secondes/nanosecondes
-    time_t seconds = g_watchdog.timeout / 1000;
-    long nanoseconds = (g_watchdog.timeout % 1000) * 1000000L;
-
-    // Configurer le timer pour single-shot (pas de répétition)
+    // Configure timer for single-shot (no repetition)
     memset(&g_its, 0, sizeof(struct itimerspec));
-    g_its.it_value.tv_sec = seconds;
-    g_its.it_value.tv_nsec = nanoseconds;
+    g_its.it_value.tv_sec = g_watchdog.timeout / 1000;
+    g_its.it_value.tv_nsec = (g_watchdog.timeout % 1000) * 1000000;
     g_its.it_interval.tv_sec = 0;
     g_its.it_interval.tv_nsec = 0;
 
-    // Armer/réarmer le timer
+    // Arm/rearm the timer
     if (timer_settime(g_timer_id, 0, &g_its, NULL) != 0)
     {
-        X_LOG_TRACE("Failed to arm timer: %s", strerror(errno));
+        X_LOG_TRACE("Failed to set timer: %s", strerror(errno));
         mutexUnlock(&g_watchdog.mutex);
         return -1;
     }
@@ -302,26 +299,23 @@ int watchdog_ping(void)
 ////////////////////////////////////////////////////////////
 bool watchdog_has_expired(void)
 {
-    // Vérifier si initialisé
+    // Check if initialized
     if (!g_is_initialized)
     {
+        X_LOG_TRACE("Watchdog not initialized when checking expiry");
         return false;
     }
 
-    bool result = false;
+    bool has_expired = false;
 
-    // Protéger l'accès avec le mutex
-    if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
+    // Protect access with mutex if initialized
+    if ((unsigned int)mutexLock(&g_watchdog.mutex) == MUTEX_OK)
     {
-        X_LOG_TRACE("Failed to lock mutex in watchdog_has_expired");
-        return false;
+        has_expired = g_watchdog.should_reset;
+        mutexUnlock(&g_watchdog.mutex);
     }
 
-    result = g_watchdog.should_reset;
-
-    mutexUnlock(&g_watchdog.mutex);
-
-    return result;
+    return has_expired;
 }
 
 ////////////////////////////////////////////////////////////
@@ -329,20 +323,14 @@ bool watchdog_has_expired(void)
 ////////////////////////////////////////////////////////////
 void watchdog_set_expiry_handler(void (*callback)(void))
 {
-    // Protéger l'accès avec le mutex si initialisé
-    if (g_is_initialized)
+    // Protect access with mutex if initialized
+    if (g_is_initialized && (unsigned int)mutexLock(&g_watchdog.mutex) == MUTEX_OK)
     {
-        if ((unsigned int)mutexLock(&g_watchdog.mutex) != MUTEX_OK)
-        {
-            X_LOG_TRACE("Failed to lock mutex in watchdog_set_expiry_handler");
-            return;
-        }
-    }
-
-    g_expiry_handler = callback;
-
-    if (g_is_initialized)
-    {
+        g_expiry_handler = callback;
         mutexUnlock(&g_watchdog.mutex);
+    }
+    else
+    {
+        g_expiry_handler = callback;
     }
 }

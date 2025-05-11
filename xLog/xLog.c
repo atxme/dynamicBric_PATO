@@ -18,8 +18,8 @@
 
 // Logger state
 typedef enum {
-    XOS_LOG_STATE_UNINITIALIZED = 0,
-    XOS_LOG_STATE_INITIALIZED = 1
+    XOS_LOG_STATE_UNINITIALIZED = 0x0,
+    XOS_LOG_STATE_INITIALIZED = 0x1
 } t_logState;
 
 // Logger context

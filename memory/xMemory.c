@@ -1,11 +1,11 @@
 ////////////////////////////////////////////////////////////
 //  xMemory.c
-//  Implémente les fonctions de gestion de mémoire
+//  Implements memory management functions
 //
-// Remarques : 
-// - Ajout de la protection par mutex (pthread) pour le mode multithread
-// - Calcul explicite de l'empreinte pour éviter les problèmes de padding
-// - Fonction xMemCorrupt() en mode DEBUG pour simuler la corruption du bloc
+// Notes: 
+// - Added mutex protection (pthread) for multithreaded mode
+// - Explicit hash calculation to avoid padding issues
+// - xMemCorrupt() function in DEBUG mode to simulate block corruption
 //
 // Written : 12/01/2025
 ////////////////////////////////////////////////////////////
@@ -15,16 +15,16 @@
 #include "hash/xHash.h"
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>  // Ajouté pour la synchronisation
+#include <pthread.h>  // Added for synchronization
 
 // Global memory manager
 static xMemoryManager_t s_tMemoryManager = { 0 };
 
-// Mutex pour protéger s_tMemoryManager
+// Mutex to protect s_tMemoryManager
 static pthread_mutex_t s_memory_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //
-// Calcule l’empreinte SHA256 à partir des champs explicites de la structure
+// Calculates SHA256 hash from explicit structure fields
 //
 static void calculateMetaHash(xMemoryBlock_t* p_ptBlock)
 {
@@ -57,7 +57,7 @@ static void calculateMetaHash(xMemoryBlock_t* p_ptBlock)
 }
 
 //
-// Vérifie l’intégrité du bloc mémoriel à l’aide du canari et du hash
+// Checks memory block integrity using canary and hash
 //
 static int checkBlockIntegrity(xMemoryBlock_t* p_ptBlock)
 {
@@ -102,7 +102,7 @@ static int checkBlockIntegrity(xMemoryBlock_t* p_ptBlock)
 }
 
 //
-// Initialise le gestionnaire de mémoire global
+// Initializes the global memory manager
 //
 int xMemInit(void)
 {
@@ -114,14 +114,14 @@ int xMemInit(void)
 }
 
 //
-// Alloue un bloc mémoire et crée une structure de métadonnées correspondante
+// Allocates a memory block and creates corresponding metadata structure
 //
 void* xMemAlloc(size_t p_ulSize, const char* p_ptkcFile, int p_iLine)
 {
     X_ASSERT(p_ulSize > 0);
     X_ASSERT(p_ptkcFile != NULL);
 
-    // Vérification d'overflow
+    // Overflow check
     if (p_ulSize > SIZE_MAX - sizeof(xMemoryBlock_t))
     {
         return NULL;
@@ -170,7 +170,7 @@ void* xMemAlloc(size_t p_ulSize, const char* p_ptkcFile, int p_iLine)
 }
 
 //
-// Libère un bloc mémoire et supprime la structure de métadonnées associée
+// Frees a memory block and removes the associated metadata structure
 //
 int xMemFree(void* p_ptPtr)
 {
@@ -215,7 +215,7 @@ int xMemFree(void* p_ptPtr)
 }
 
 //
-// Renvoie les statistiques actuelles de la mémoire
+// Returns current memory statistics
 //
 int xMemGetStats(size_t* p_pulTotal, size_t* p_pulPeak, size_t* p_pulCount)
 {
@@ -233,7 +233,7 @@ int xMemGetStats(size_t* p_pulTotal, size_t* p_pulPeak, size_t* p_pulCount)
 }
 
 //
-// Vérifie l'intégrité de tous les blocs alloués
+// Checks integrity of all allocated blocks
 //
 int xMemCheck(void)
 {
@@ -253,7 +253,7 @@ int xMemCheck(void)
 }
 
 //
-// Libère tous les blocs alloués et réinitialise le gestionnaire
+// Frees all allocated blocks and resets the manager
 //
 int xMemCleanup(void)
 {
@@ -273,8 +273,8 @@ int xMemCleanup(void)
 
 #ifdef DEBUG
 //
-// Fonction utilisée pour simuler une corruption de mémoire (à des fins de test)
-// en altérant le canari d’un bloc alloué.
+// Function used to simulate memory corruption (for testing purposes)
+// by altering the canary of an allocated block.
 //
 void xMemCorrupt(void)
 {

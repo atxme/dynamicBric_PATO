@@ -1,7 +1,7 @@
 /**
  * @file error.h
  *
- * Gestion d'erreur de l'API de programmation du MRPiZ.
+ * Error management for the MRPiZ programming API.
  *
  * @version 0.1
  * @author Matthias Brun (matthias.brun@eseo.fr)
@@ -12,10 +12,10 @@
 #define MRPIZ_ERROR_H_
 
 /**
- * @defgroup mrpiz_error Gestion d'erreur pour la programmation d'un robot MRPiZ.
+ * @defgroup mrpiz_error Error management for MRPiZ robot programming.
  *
  * @brief
- * Fonctions et macros utiles à la gestion d'erreur pour la programmation d'un MRPiZ.
+ * Functions and macros useful for error management when programming an MRPiZ.
  *
  * @{
  */
@@ -23,43 +23,43 @@
 /**
  * @enum mrpiz_error_t
  *
- * @brief Liste des erreurs MRPiZ
+ * @brief List of MRPiZ errors
  *
- * Codes d'erreur utilisés pour renseigner errno lors de l'exécution des fonctions de la bibliothèque.
+ * Error codes used to set errno during library function execution.
  *
- * Remarque : L'énumératin commence à 1 (errno n'est jamais mis à zero lorsqu'une erreur survient (man errno)).
+ * Note: The enumeration starts at 1 (errno is never set to zero when an error occurs (man errno)).
  *
  */
 typedef enum
 {
-	// Erreurs spécifiques à Intox :
+	// Errors specific to Intox:
 
-	MRPIZ_INTOX_E_SYSTEM				= 1,		/**< Problème interne d'utilisation d'un appel système (voir logs précédents issus de perror). */
+	MRPIZ_INTOX_E_SYSTEM				= 1,		/**< Internal problem using a system call (see previous logs from perror). */
 
-	MRPIZ_INTOX_E_SOCKET,						/**< Erreur durant la création de la socket de connexion au simulateur. */
-	MRPIZ_INTOX_E_CONNECT,						/**< Erreur durant la connexion au simulateur Intox (erreur par défaut). */
-	MRPIZ_INTOX_E_CONNECT_REFUSED,				/**< Erreur durant la connexion au simulateur Intox : connexion refusée. */
-	MRPIZ_INTOX_E_CONNECT_NET,					/**< Erreur durant la connexion au simulateur Intox : réseau inaccessible. */
-	MRPIZ_INTOX_E_CONNECT_HOST,					/**< Erreur durant la connexion au simulateur Intox : serveur inaccessible. */
-	MRPIZ_INTOX_E_CONNECT_TIMEOUT,				/**< Erreur durant la connexion au simulateur Intox : échéance de connexion. */
+	MRPIZ_INTOX_E_SOCKET,						/**< Error during the creation of the simulator connection socket. */
+	MRPIZ_INTOX_E_CONNECT,						/**< Error during connection to the Intox simulator (default error). */
+	MRPIZ_INTOX_E_CONNECT_REFUSED,				/**< Error during connection to the Intox simulator: connection refused. */
+	MRPIZ_INTOX_E_CONNECT_NET,					/**< Error during connection to the Intox simulator: network unreachable. */
+	MRPIZ_INTOX_E_CONNECT_HOST,					/**< Error during connection to the Intox simulator: server unreachable. */
+	MRPIZ_INTOX_E_CONNECT_TIMEOUT,				/**< Error during connection to the Intox simulator: connection timeout. */
 
-	MRPIZ_INTOX_E_ACCESS, 						/**< Erreur d'accès au simulateur Intox. */
-	MRPIZ_INTOX_E_LOST, 						/**< Perte d'accès au simulateur Intox. */
-	MRPIZ_INTOX_E_CMD,	 						/**< Commande invalide au simulateur Intox. */
+	MRPIZ_INTOX_E_ACCESS, 						/**< Access error to the Intox simulator. */
+	MRPIZ_INTOX_E_LOST, 						/**< Lost access to the Intox simulator. */
+	MRPIZ_INTOX_E_CMD,	 						/**< Invalid command to the Intox simulator. */
 
-	// Erreurs MRPiZ :
+	// MRPiZ errors:
 
-	MRPIZ_E_INIT,							/**< MRPiZ n'est pas initialisé. */
-	MRPIZ_E_MOTOR_CMD,						/**< Commande moteur invalide. */
-	MRPIZ_E_MOTOR_ID,						/**< Identifiant de moteur invalide. */
-	MRPIZ_E_PROXY_SENSOR_ID,				/**< Identifiant de capteur de proximité invalide. */
+	MRPIZ_E_INIT,							/**< MRPiZ is not initialized. */
+	MRPIZ_E_MOTOR_CMD,						/**< Invalid motor command. */
+	MRPIZ_E_MOTOR_ID,						/**< Invalid motor identifier. */
+	MRPIZ_E_PROXY_SENSOR_ID,				/**< Invalid proximity sensor identifier. */
 
-	MRPIZ_E_SYSTEM,							/**< Problème interne d'utilisation d'un appel système (voir logs précédents issus de perror). */
+	MRPIZ_E_SYSTEM,							/**< Internal problem using a system call (see previous logs from perror). */
 
-	// Erreurs spécifiques à MRPiZ :
-	MRPIZ_E_UART,							/**< Erreur durant la communication UART entre la PiZ et la STM32.	*/
+	// Errors specific to MRPiZ:
+	MRPIZ_E_UART,							/**< Error during UART communication between PiZ and STM32. */
 
-	//  MRPIZ_E_UNDEFINED						/**< Fin de la liste d'erreurs. */
+	//  MRPIZ_E_UNDEFINED						/**< End of the error list. */
 
 } mrpiz_error_t;
 
@@ -67,19 +67,19 @@ typedef enum
 /**
  * @fn char const * mrpiz_error_msg()
  *
- * @brief Donne le message d'erreur (associé à la valeur de errno de la lib mrpiz).
+ * @brief Returns the error message (associated with the errno value of the mrpiz lib).
  *
- * @return le message d'erreur
+ * @return the error message
  */
 char const * mrpiz_error_msg();
 
 /**
  * @fn void mrpiz_error_print(char * msg)
  *
- * @brief Affiche le message d'erreur (associé à la valeur errno de la lib mrpiz).
+ * @brief Displays the error message (associated with the errno value of the mrpiz lib).
  *
  *
- * @param msg le préfixe du message à afficher (NULL si pas de préfixe)
+ * @param msg the prefix of the message to display (NULL if no prefix)
  */
 void mrpiz_error_print(char * msg);
 

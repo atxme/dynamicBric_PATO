@@ -145,13 +145,15 @@ NetworkSocket *networkAccept(NetworkSocket *p_ptSocket, NetworkAddress *p_pClien
     socklen_t l_iAddrLen = sizeof(l_tClientAddr);
 
     int l_iClientFd = accept(p_ptSocket->t_iSocketFd, (struct sockaddr *)&l_tClientAddr, &l_iAddrLen);
-    if (l_iClientFd < 0) {
+    if (l_iClientFd < 0) 
+    {
         X_LOG_TRACE("networkAccept: accept() failed with error %d", errno);
         return NULL;
     }
 
     // Store client address if requested
-    if (p_pClientAddress) {
+    if (p_pClientAddress) 
+    {
         inet_ntop(AF_INET, &l_tClientAddr.sin_addr, p_pClientAddress->t_cAddress, INET_ADDRSTRLEN);
         p_pClientAddress->t_usPort = NET_TO_HOST_SHORT(l_tClientAddr.sin_port);
     }
@@ -162,7 +164,8 @@ NetworkSocket *networkAccept(NetworkSocket *p_ptSocket, NetworkAddress *p_pClien
 
     // Allocate socket for the new connection
     NetworkSocket *l_pClientSocket = (NetworkSocket *)malloc(sizeof(NetworkSocket));
-    if (!l_pClientSocket) {
+    if (!l_pClientSocket) 
+    {
         X_LOG_TRACE("networkAccept: Failed to allocate memory for client socket");
         close(l_iClientFd);
         return NULL;
