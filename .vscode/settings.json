@@ -64,6 +64,8 @@
         "xtask.h": "c",
         "sha256.h": "c",
         "socket.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c"
     }
 }

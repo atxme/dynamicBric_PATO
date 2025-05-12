@@ -6,9 +6,6 @@
 ////////////////////////////////////////////////////////////
 
 
-#define _BSD_SOURCE       // For usleep
-#define _DEFAULT_SOURCE   // Alternative for newer systems
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,9 +15,8 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
-// Specific inclusions for POSIX timers
 #include <sys/signal.h>
-// Local inclusions
+
 #include "watchdog.h"
 #include "xLog.h"
 #include "xOsMutex.h"
@@ -117,6 +113,7 @@ static void timer_handler(union sigval sv)
 ////////////////////////////////////////////////////////////
 int watchdog_init(int timeout_ms)
 {
+    unsigned long l_ulReturn ;
     // Check if already initialized
     if (g_is_initialized)
     {
@@ -163,14 +160,25 @@ int watchdog_init(int timeout_ms)
     X_LOG_TRACE("POSIX timer watchdog initialized (timeout=%dms)", actual_timeout);
 
     // Create the watchdog thread
+    l_ulReturn = osTaskInit(&g_watchdog.task_ctx);
+    if (l_ulReturn != OS_TASK_SUCCESS) 
+    {
+        X_LOG_TRACE("Failed to initialize watchdog task: %x", l_ulReturn);
+        timer_delete(g_timer_id);
+        mutexDestroy(&g_watchdog.mutex);
+        g_is_initialized = 0;  
+        return l_ulReturn;
+    }
+    
     g_watchdog.task_ctx.t_iPriority = 1;        
-    g_watchdog.task_ctx.t_ulStackSize = 4096; 
+    g_watchdog.task_ctx.t_ulStackSize = PTHREAD_STACK_MIN; 
     g_watchdog.task_ctx.t_ptTask = watchdog_thread;
     g_watchdog.task_ctx.t_ptTaskArg = &g_watchdog;
     
-    unsigned long l_ulReturn = osTaskCreate(&g_watchdog.task_ctx);
-    if (l_ulReturn != OS_TASK_SUCCESS) {
-        X_LOG_TRACE("Failed to create watchdog thread: %d", l_ulReturn);
+    l_ulReturn = osTaskCreate(&g_watchdog.task_ctx);
+    if (l_ulReturn != OS_TASK_SUCCESS) 
+    {
+        X_LOG_TRACE("Failed to create watchdog thread: %x", l_ulReturn);
         timer_delete(g_timer_id);
         mutexDestroy(&g_watchdog.mutex);
         g_is_initialized = 0;
@@ -180,7 +188,8 @@ int watchdog_init(int timeout_ms)
     g_watchdog.is_running = 1;
     
     // Activate the watchdog immediately
-    if (watchdog_ping() != 0) {
+    if (watchdog_ping() != 0) 
+    {
         X_LOG_TRACE("Failed to start watchdog timer");
         g_watchdog.terminate = 1;
         osTaskEnd(&g_watchdog.task_ctx);
