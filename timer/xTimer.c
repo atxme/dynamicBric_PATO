@@ -221,7 +221,7 @@ int xTimerProcessElapsedPeriods(xOsTimerCtx *p_ptTimer, void (*p_pfCallback)(voi
     X_ASSERT(p_ptTimer != NULL);
     X_ASSERT(p_pfCallback != NULL);
 
-    int l_ulResult;
+    unsigned long l_ulResult;
     int l_iPeriodCount = 0;
 
     // Lock mutex for thread safety
