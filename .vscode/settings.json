@@ -63,6 +63,7 @@
         "xoshorodateur.h": "c",
         "xtask.h": "c",
         "sha256.h": "c",
-        "socket.h": "c"
+        "socket.h": "c",
+        "unistd.h": "c"
     }
 }

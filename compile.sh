@@ -16,7 +16,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Project paths
-PROJECT_PATH="$HOME/pato/dynamicBric_PATO"
+PROJECT_PATH=$(pwd)
 BUILD_DIR="build"
 BUILD_PATH="$PROJECT_PATH/$BUILD_DIR"
 

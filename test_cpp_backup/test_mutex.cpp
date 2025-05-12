@@ -9,20 +9,25 @@
 #include <thread>
 #include <chrono>
 
-extern "C" {
-    #include "xOs/xOsMutex.h"
+extern "C"
+{
+#include "xOs/xOsMutex.h"
 }
 
-class MutexTest : public ::testing::Test {
+class MutexTest : public ::testing::Test
+{
 protected:
-    t_MutexCtx mutex;
+    xOsMutexCtx mutex;
 
-    void SetUp() override {
-        memset(&mutex, 0, sizeof(t_MutexCtx));
+    void SetUp() override
+    {
+        memset(&mutex, 0, sizeof(xOsMutexCtx));
     }
 
-    void TearDown() override {
-        if (mutex.t_iState == MUTEX_LOCKED) {
+    void TearDown() override
+    {
+        if (mutex.t_iState == MUTEX_LOCKED)
+        {
             mutexUnlock(&mutex);
         }
         mutexDestroy(&mutex);
@@ -30,23 +35,25 @@ protected:
 };
 
 // Test création basique
-TEST_F(MutexTest, BasicCreation) {
+TEST_F(MutexTest, BasicCreation)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     EXPECT_EQ(mutex.t_iState, MUTEX_UNLOCKED);
     EXPECT_EQ(mutex.t_ulTimeout, MUTEX_DEFAULT_TIMEOUT);
 }
 
 // Test verrouillage récursif (supporté par l'implémentation)
-TEST_F(MutexTest, RecursiveLocking) {
+TEST_F(MutexTest, RecursiveLocking)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
-    
+
     // Premier verrouillage
     EXPECT_EQ(mutexLock(&mutex), MUTEX_OK);
     EXPECT_EQ(mutex.t_iState, MUTEX_LOCKED);
-    
+
     // Second verrouillage (doit réussir car mutex récursif)
     EXPECT_EQ(mutexLock(&mutex), MUTEX_OK);
-    
+
     // Double déverrouillage
     EXPECT_EQ(mutexUnlock(&mutex), MUTEX_OK);
     EXPECT_EQ(mutexUnlock(&mutex), MUTEX_OK);
@@ -54,59 +61,63 @@ TEST_F(MutexTest, RecursiveLocking) {
 }
 
 // Test tryLock avec état
-TEST_F(MutexTest, TryLockState) {
+TEST_F(MutexTest, TryLockState)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
-    
+
     EXPECT_EQ(mutexTryLock(&mutex), MUTEX_OK);
     EXPECT_EQ(mutex.t_iState, MUTEX_LOCKED);
-    
-    std::thread t([this]() {
-        EXPECT_EQ(mutexTryLock(&mutex), MUTEX_TIMEOUT);
-    });
-    
+
+    std::thread t([this]()
+                  { EXPECT_EQ(mutexTryLock(&mutex), MUTEX_TIMEOUT); });
+
     t.join();
     EXPECT_EQ(mutexUnlock(&mutex), MUTEX_OK);
 }
 
 // Test timeout précis
-TEST_F(MutexTest, PreciseTimeout) {
+TEST_F(MutexTest, PreciseTimeout)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     EXPECT_EQ(mutexLock(&mutex), MUTEX_OK);
-    
+
     auto start = std::chrono::steady_clock::now();
-    
-    std::thread t([this]() {
-        EXPECT_EQ(mutexLockTimeout(&mutex, 100), MUTEX_TIMEOUT);
-    });
-    
+
+    std::thread t([this]()
+                  { EXPECT_EQ(mutexLockTimeout(&mutex, 100), MUTEX_TIMEOUT); });
+
     t.join();
-    
+
     auto end = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
+
     // Vérifier que le timeout est proche de 100ms
     EXPECT_GE(duration.count(), 95);
     EXPECT_LE(duration.count(), 150);
 }
 
 // Test modification timeout
-TEST_F(MutexTest, TimeoutModification) {
+TEST_F(MutexTest, TimeoutModification)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
-    
+
     EXPECT_EQ(mutexSetTimeout(&mutex, 2000), MUTEX_OK);
     EXPECT_EQ(mutex.t_ulTimeout, 2000);
-    
+
     EXPECT_EQ(mutexSetTimeout(&mutex, MUTEX_DEFAULT_TIMEOUT), MUTEX_OK);
     EXPECT_EQ(mutex.t_ulTimeout, MUTEX_DEFAULT_TIMEOUT);
 }
 
 // Test accès concurrent avec vérification d'état
-TEST_F(MutexTest, ConcurrentAccessWithState) {
+TEST_F(MutexTest, ConcurrentAccessWithState)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     int sharedCounter = 0;
-    
-    auto incrementCounter = [this, &sharedCounter]() {
-        for(int i = 0; i < 1000; i++) {
+
+    auto incrementCounter = [this, &sharedCounter]()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
             EXPECT_EQ(mutexLock(&mutex), MUTEX_OK);
             EXPECT_EQ(mutex.t_iState, MUTEX_LOCKED);
             sharedCounter++;
@@ -114,25 +125,27 @@ TEST_F(MutexTest, ConcurrentAccessWithState) {
             EXPECT_EQ(mutex.t_iState, MUTEX_UNLOCKED);
         }
     };
-    
+
     std::thread t1(incrementCounter);
     std::thread t2(incrementCounter);
-    
+
     t1.join();
     t2.join();
-    
+
     EXPECT_EQ(sharedCounter, 2000);
     EXPECT_EQ(mutex.t_iState, MUTEX_UNLOCKED);
 }
 
 // Test déverrouillage sans verrouillage (doit déclencher une assertion)
-TEST_F(MutexTest, UnlockWithoutLock) {
+TEST_F(MutexTest, UnlockWithoutLock)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     EXPECT_EQ(mutexUnlock(&mutex), MUTEX_ERROR);
 }
 
 // Test avec pointeur null (doit déclencher une assertion)
-TEST_F(MutexTest, NullPointerHandling) {
+TEST_F(MutexTest, NullPointerHandling)
+{
     EXPECT_DEATH(mutexCreate(nullptr), ".*");
     EXPECT_DEATH(mutexLock(nullptr), ".*");
     EXPECT_DEATH(mutexUnlock(nullptr), ".*");
@@ -140,11 +153,12 @@ TEST_F(MutexTest, NullPointerHandling) {
 }
 
 // Test de destruction et réutilisation
-TEST_F(MutexTest, DestroyAndReuse) {
+TEST_F(MutexTest, DestroyAndReuse)
+{
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     EXPECT_EQ(mutexDestroy(&mutex), MUTEX_OK);
     EXPECT_EQ(mutex.t_iState, MUTEX_UNLOCKED);
-    
+
     // Recréation après destruction
     EXPECT_EQ(mutexCreate(&mutex), MUTEX_OK);
     EXPECT_EQ(mutexLock(&mutex), MUTEX_OK);

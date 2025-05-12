@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////
 #define USE_TLS 1
 
-#ifndef NETWORK_TLS_H_  
+#ifndef NETWORK_TLS_H_
 #define NETWORK_TLS_H_
 
 #include <sys/socket.h>
@@ -41,11 +41,11 @@
 #define NETWORK_DEFAULT_TIMEOUT 30000 // Default timeout in milliseconds (30 seconds)
 
 // Network error codes
-#define NETWORK_OK              0xE8C74D60
-#define NETWORK_ERROR           0xE8C74D61
-#define NETWORK_TIMEOUT         0xE8C74D62
-#define NETWORK_INVALID_PARAM   0xE8C74D63
-#define NETWORK_TLS_ERROR       0xE8C74D64
+#define NETWORK_OK 0xE8C74D60
+#define NETWORK_ERROR 0xE8C74D61
+#define NETWORK_TIMEOUT 0xE8C74D62
+#define NETWORK_INVALID_PARAM 0xE8C74D63
+#define NETWORK_TLS_ERROR 0xE8C74D64
 
 // Byte order conversion macros
 #define HOST_TO_NET_LONG(p_uiValue) htonl(p_uiValue)
@@ -60,7 +60,7 @@ typedef struct NetworkSocket_t
     int t_iType;         // Socket type (TCP/UDP)
     bool t_bConnected;   // Connection state
     void *t_pTlsEngine;  // TLS context (always present)
-    t_MutexCtx t_Mutex;  // Mutex for thread safety
+    xOsMutexCtx t_Mutex; // Mutex for thread safety
 } NetworkSocket;
 
 // Network address structure (IPv4 only)
@@ -73,12 +73,12 @@ typedef struct
 // TLS configuration for network sockets (always required)
 typedef struct
 {
-    bool t_bVerifyPeer;         // Verify peer certificate
-    const char *t_cCaPath;      // Path to CA certificate
-    const char *t_cCertPath;    // Path to certificate
-    const char *t_cKeyPath;     // Path to private key
-    TLS_Version t_eVersion;     // TLS version (defaults to TLS 1.3)
-    TLS_ECC_Curve t_eCurve;     // ECC curve to use
+    bool t_bVerifyPeer;      // Verify peer certificate
+    const char *t_cCaPath;   // Path to CA certificate
+    const char *t_cCertPath; // Path to certificate
+    const char *t_cKeyPath;  // Path to private key
+    TLS_Version t_eVersion;  // TLS version (defaults to TLS 1.3)
+    TLS_ECC_Curve t_eCurve;  // ECC curve to use
 } NetworkTlsConfig;
 
 // Available socket types
