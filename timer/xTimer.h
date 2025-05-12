@@ -4,7 +4,7 @@
 //
 // general discloser: copy or share the file is forbidden
 // Written : 12/01/2025
-// Modified: Current date - Improved thread safety and timing precision
+// Modified: 12/05/2025 - Improved thread safety and timing precision
 ////////////////////////////////////////////////////////////
 #pragma once
 
